@@ -540,6 +540,19 @@ class ReconEngineService:
         cin = (p_first and p_first.cin) or (b_first and b_first.cin) or (r_first and r_first.cin)
         cpin = (p_first and p_first.cpin) or (b_first and b_first.cpin) or (r_first and r_first.cpin)
 
+        # 1. Compute SLA delay and penal interest dynamically across bank legs
+        sla_delay = 0
+        penal_amt = Decimal("0.00")
+        if b_list:
+            for b in b_list:
+                d, p_int = self._calculate_bank_leg_penal(b, float(penal_rate))
+                sla_delay = max(sla_delay, d)
+                penal_amt += p_int
+
+        flags = []
+        if sla_delay > 0:
+            flags.append("SLA_DELAY_OBSERVED")
+
         # Attribute Guard (Rule RR-08)
         if p_first and b_first and (p_first.revenue_source != b_first.revenue_source or p_first.dept_code != b_first.dept_code):
             return {
@@ -547,8 +560,8 @@ class ReconEngineService:
                 "challan_no": challan, "cpin": cpin, "cin": cin,
                 "revenue_source": source, "dept_code": dept, "pao_code": pao, "receipt_head": head, "payer_name": payer,
                 "portal_total": p_total, "bank_total": b_total, "rbi_total": r_total,
-                "amount_difference": p_total - r_total, "date_variance_days": 0, "sla_delay_days": 0, "penal_interest_amount": Decimal("0.00"),
-                "rule_applied": "RR-08", "match_type": "Attribute Mismatch", "status": "Under Investigation", "flags": ["ATTRIBUTE_MISMATCH"],
+                "amount_difference": p_total - r_total, "date_variance_days": 0, "sla_delay_days": sla_delay, "penal_interest_amount": penal_amt,
+                "rule_applied": "RR-08", "match_type": "Attribute Mismatch", "status": "Under Investigation", "flags": flags + ["ATTRIBUTE_MISMATCH"],
                 "match_reason": f"Revenue Source or Department mismatch between Portal ({p_first.revenue_source}/{p_first.dept_code}) and Bank ({b_first.revenue_source}/{b_first.dept_code})."
             }
 
@@ -559,8 +572,8 @@ class ReconEngineService:
                 "challan_no": challan, "cpin": cpin, "cin": cin,
                 "revenue_source": source, "dept_code": dept, "pao_code": pao, "receipt_head": head, "payer_name": payer,
                 "portal_total": p_total, "bank_total": b_total, "rbi_total": r_total,
-                "amount_difference": p_total - b_total, "date_variance_days": 0, "sla_delay_days": 0, "penal_interest_amount": Decimal("0.00"),
-                "rule_applied": "RR-05", "match_type": "Duplicate Settlement", "status": "Duplicate", "flags": ["DUPLICATE_SCROLL_LINE"],
+                "amount_difference": p_total - b_total, "date_variance_days": 0, "sla_delay_days": sla_delay, "penal_interest_amount": penal_amt,
+                "rule_applied": "RR-05", "match_type": "Duplicate Settlement", "status": "Duplicate", "flags": flags + ["DUPLICATE_SCROLL_LINE"],
                 "match_reason": f"Duplicate scroll lines found totaling {b_total}, which exceeds Portal amount {p_total}."
             }
 
@@ -571,28 +584,20 @@ class ReconEngineService:
                 "challan_no": challan, "cpin": cpin, "cin": cin,
                 "revenue_source": source, "dept_code": dept, "pao_code": pao, "receipt_head": head, "payer_name": payer,
                 "portal_total": Decimal("0.00"), "bank_total": b_total, "rbi_total": r_total,
-                "amount_difference": Decimal("0.00") - r_total, "date_variance_days": 0, "sla_delay_days": 0, "penal_interest_amount": Decimal("0.00"),
-                "rule_applied": "RR-04", "match_type": "Orphan Credit", "status": "RAT", "flags": ["RAT_SUSPENSE"],
+                "amount_difference": Decimal("0.00") - r_total, "date_variance_days": 0, "sla_delay_days": sla_delay, "penal_interest_amount": penal_amt,
+                "rule_applied": "RR-04", "match_type": "Orphan Credit", "status": "RAT", "flags": flags + ["RAT_SUSPENSE"],
                 "match_reason": "Receipt Awaiting Transfer (RAT): Bank or RBI credit exists without corresponding departmental portal record."
             }
 
         # Suspend / Missing RBI (Rule RR-03)
         if p_list and not r_list:
-            sla_days = 0
-            penal_amt = Decimal("0.00")
-            if b_list:
-                for b in b_list:
-                    d, p_int = self._calculate_bank_leg_penal(b, penal_rate)
-                    sla_days = max(sla_days, d)
-                    penal_amt += p_int
-
             return {
                 "match_key_type": "CIN" if cin else "CHALLAN",
                 "challan_no": challan, "cpin": cpin, "cin": cin,
                 "revenue_source": source, "dept_code": dept, "pao_code": pao, "receipt_head": head, "payer_name": payer,
                 "portal_total": p_total, "bank_total": b_total, "rbi_total": Decimal("0.00"),
-                "amount_difference": p_total, "date_variance_days": 0, "sla_delay_days": sla_days, "penal_interest_amount": penal_amt,
-                "rule_applied": "RR-03", "match_type": "SLA Ageing Suspend", "status": "Suspend", "flags": ["RBI_CREDIT_MISSING"],
+                "amount_difference": p_total, "date_variance_days": 0, "sla_delay_days": sla_delay, "penal_interest_amount": penal_amt,
+                "rule_applied": "RR-03", "match_type": "SLA Ageing Suspend", "status": "Suspend", "flags": flags + ["RBI_CREDIT_MISSING"],
                 "match_reason": "Portal receipt exists but RBI government-account credit is missing after permitted remittance SLA."
             }
 
@@ -604,27 +609,15 @@ class ReconEngineService:
                 "challan_no": challan, "cpin": cpin, "cin": cin,
                 "revenue_source": source, "dept_code": dept, "pao_code": pao, "receipt_head": head, "payer_name": payer,
                 "portal_total": p_total, "bank_total": b_total, "rbi_total": r_total,
-                "amount_difference": p_total - r_total, "date_variance_days": 0, "sla_delay_days": 0, "penal_interest_amount": Decimal("0.00"),
-                "rule_applied": "RR-06", "match_type": "Amount Variance", "status": "Mismatch", "flags": ["AMOUNT_MISMATCH"],
+                "amount_difference": p_total - r_total, "date_variance_days": 0, "sla_delay_days": sla_delay, "penal_interest_amount": penal_amt,
+                "rule_applied": "RR-06", "match_type": "Amount Variance", "status": "Mismatch", "flags": flags + ["AMOUNT_MISMATCH"],
                 "match_reason": f"Amount difference of ₹{diff} exceeds configured tolerance of ₹{amt_tolerance}."
             }
 
-        # Check Date Variance & SLA Delays
+        # Check Date Variance
         date_variance = 0
         if p_first and r_first:
             date_variance = abs((r_first.rbi_credit_date - p_first.payment_date).days)
-
-        sla_delay = 0
-        penal_amt = Decimal("0.00")
-        if b_list:
-            for b in b_list:
-                d, p_int = self._calculate_bank_leg_penal(b, penal_rate)
-                sla_delay = max(sla_delay, d)
-                penal_amt += p_int
-
-        flags = []
-        if sla_delay > 0:
-            flags.append("SLA_DELAY_OBSERVED")
 
         # Split One-to-Many Match (Rule RR-02)
         if len(b_list) > 1 or len(r_list) > 1:
@@ -662,15 +655,25 @@ class ReconEngineService:
         }
 
     def _calculate_bank_leg_penal(self, b: RevAgencyBankScrollStaging, penal_rate: float) -> Tuple[int, Decimal]:
-        base_d = b.payment_received_date
-        remit_d = b.bank_remittance_date
-        actual_days = max(0, (remit_d - base_d).days)
-        delay_days = max(0, actual_days - 1) # 1 allowed day
+        m = (getattr(b, "payment_mode", "") or "").upper()
+        is_instrument = (m in ["CHEQUE", "DD"])
+        allowed_days = 2 if (is_instrument or m == "CASH") else 1
 
-        if delay_days <= 0 or b.amount <= 0:
+        base_d = b.payment_received_date
+        if is_instrument and hasattr(b, "instrument_realization_date") and b.instrument_realization_date:
+            base_d = b.instrument_realization_date
+
+        remit_d = b.bank_remittance_date
+        if not base_d or not remit_d:
             return 0, Decimal("0.00")
-        
-        # Simple interest (Principal * Rate / 100 * Days / 365)
+
+        actual_days = max(0, (remit_d - base_d).days)
+        delay_days = max(0, actual_days - allowed_days)
+
+        if delay_days <= 0 or not b.amount or b.amount <= 0:
+            return 0, Decimal("0.00")
+
+        # Simple interest: (Principal * Rate / 100 * Days / 365)
         interest = round((float(b.amount) * (penal_rate / 100.0) * delay_days) / 365.0, 2)
         return delay_days, Decimal(str(interest))
 

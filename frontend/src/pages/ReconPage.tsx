@@ -634,11 +634,15 @@ export const ReconPage: React.FC = () => {
                       {r.slaDelay > 0 ? (
                         <span className="badge b-amber">{r.slaDelay} day(s) late</span>
                       ) : (
-                        <span className="badge b-green">Within SLA</span>
+                        <span className="badge b-green">Within SLA (0d)</span>
                       )}
                     </td>
                     <td className="num">
-                      {r.penal > 0 ? money(r.penal) : <span className="muted">&mdash;</span>}
+                      {r.penal > 0 ? (
+                        <strong style={{ color: 'var(--amber-700, #b57905)' }}>{money(r.penal)}</strong>
+                      ) : (
+                        <span className="muted">₹ 0.00</span>
+                      )}
                     </td>
                     <td>
                       <div className="small">{r.reason}</div>
@@ -1035,6 +1039,7 @@ export const ReconPage: React.FC = () => {
               {/* Tab B: Rule & Calculation */}
               {reconTab === 'b' && (
                 <div>
+                  <h4 className="mb8" style={{ fontSize: '14px', fontWeight: 600 }}>1. Three-Way Reconciliation Evaluation</h4>
                   <dl className="kv mb12">
                     <dt>Rule applied</dt>
                     <dd className="mono strong">{selectedRow.ruleCode}</dd>
@@ -1051,15 +1056,74 @@ export const ReconPage: React.FC = () => {
                       <span className={badgeClass(selectedRow.status)}>{selectedRow.status}</span>
                     </dd>
                   </dl>
-                  <div className="formula">
+                  <div className="formula mb16">
                     portal_total = {plain(selectedRow.portalAmt)}
                     {'\n'}bank_total = {plain(selectedRow.bankAmt)}
                     {'\n'}rbi_total = {plain(selectedRow.rbiAmt)}
                     {'\n'}difference = {plain(selectedRow.diff)}
                     {'\n'}effective_portal_date = {fmtDate(selectedRow.portalDate)}
                     {'\n'}rbi_credit_date = {fmtDate(selectedRow.rbiDate)}
-                    {'\n'}sla_delay_days = {selectedRow.slaDelay}
-                    {'\n'}penal_interest = {plain(selectedRow.penal)}
+                    {'\n'}match_reason = {selectedRow.reason}
+                  </div>
+
+                  <h4 className="mb8" style={{ fontSize: '14px', fontWeight: 600 }}>2. Bank Remittance SLA &amp; Penal Interest Breakdown</h4>
+                  <div className="box mb12" style={{ background: 'var(--bg-panel, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', padding: '12px' }}>
+                    <table className="dt" style={{ width: '100%', fontSize: '13px' }}>
+                      <tbody>
+                        <tr>
+                          <td style={{ width: '220px', fontWeight: 500 }}>Principal (Remittance Leg)</td>
+                          <td className="strong">{money(selectedRow.bankAmt || selectedRow.portalAmt)}</td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 500 }}>Collection / Base Date</td>
+                          <td>{fmtDate(selectedRow.portalDate)} (T)</td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 500 }}>Agency Bank Remittance Date</td>
+                          <td>{fmtDate(selectedRow.bankDate)}</td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 500 }}>Permitted Remittance SLA</td>
+                          <td><span className="badge b-blue">T + 1 day</span> (Agency Bank SLA Guideline)</td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 500 }}>SLA Delay Days</td>
+                          <td>
+                            {selectedRow.slaDelay > 0 ? (
+                              <span className="badge b-amber">{selectedRow.slaDelay} day(s) late</span>
+                            ) : (
+                              <span className="badge b-green">0 day(s) &mdash; Within SLA</span>
+                            )}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 500 }}>Annual Penal Interest Rate</td>
+                          <td>12.00% p.a. (Simple daily interest, 365-day basis)</td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 500 }}>Statutory Computation Formula</td>
+                          <td className="mono small">
+                            Penal Interest = Principal &times; (12.00 / 100) &times; Delay Days &divide; 365
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 600 }}>Computed Penal Interest</td>
+                          <td className="strong" style={{ fontSize: '14px', color: selectedRow.penal > 0 ? 'var(--amber-700, #b57905)' : 'inherit' }}>
+                            {selectedRow.penal > 0 ? (
+                              <>
+                                {money(selectedRow.penal)}{' '}
+                                <span className="badge b-amber ml8">Recovery Claim Registered</span>
+                              </>
+                            ) : (
+                              <>
+                                ₹ 0.00{' '}
+                                <span className="badge b-green ml8">Compliant (No Penal Interest)</span>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
