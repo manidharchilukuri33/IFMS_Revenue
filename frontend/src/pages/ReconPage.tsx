@@ -68,6 +68,7 @@ export const ReconPage: React.FC = () => {
   const [overrideModal, setOverrideModal] = useState<ReconRow | null>(null);
   const [overrideStatus, setOverrideStatus] = useState('Matched');
   const [overrideReason, setOverrideReason] = useState('');
+  const [dbSummary, setDbSummary] = useState<any>(null);
 
   const canRun = ['SYSADMIN', 'TRE_ADMIN', 'PAO_MAKER'].includes(userRole);
   const canReset = ['SYSADMIN', 'TRE_ADMIN'].includes(userRole);
@@ -77,18 +78,20 @@ export const ReconPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [res, batchRes, srcRes, paoRes, bankRes] = await Promise.all([
+      const [res, batchRes, srcRes, paoRes, bankRes, sumRes] = await Promise.all([
         api.getReconciliationResults({ limit: 500 }),
         api.getUploadBatches().catch(() => []),
         api.getRevenueSources().catch(() => []),
         api.getPaos().catch(() => []),
         api.getAgencyBanks().catch(() => []),
+        api.getReconSummary().catch(() => null),
       ]);
 
       setBatches(batchRes || []);
       setSources(srcRes || []);
       setPaos(paoRes || []);
       setBanks(bankRes || []);
+      setDbSummary(sumRes);
 
       const mapped: ReconRow[] = (res.items || []).map((r: any, idx: number) => {
         const portalAmt = Number(r.portal_total ?? r.portal_amount ?? r.portalAmt ?? 0);
@@ -201,7 +204,7 @@ export const ReconPage: React.FC = () => {
         `Reconciliation committed: ${res.matched_count ?? 14} matched, ${res.mismatch_count ?? 3} exception(s).`,
         'success'
       );
-      fetchData();
+      await fetchData();
       triggerRefresh();
     } catch (err: any) {
       showToast(err.message || 'Reconciliation run failed', 'error');
@@ -218,10 +221,15 @@ export const ReconPage: React.FC = () => {
       )
     ) {
       try {
-        setItems([]);
-        showToast('Reconciliation results cleared. Source uploads retained.', 'warning');
+        setLoading(true);
+        await api.resetReconciliation();
+        showToast('Reconciliation results cleared from database. Source uploads retained.', 'warning');
+        await fetchData();
+        triggerRefresh();
       } catch (err: any) {
         showToast(err.message || 'Reset failed', 'error');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -290,29 +298,44 @@ export const ReconPage: React.FC = () => {
       return;
     }
     try {
-      setItems(prev =>
-        prev.map(x =>
-          x.id === overrideModal.id
-            ? {
-                ...x,
-                status: overrideStatus,
-                override: {
-                  machine: x.status,
-                  proposed: overrideStatus,
-                  reason: overrideReason,
-                  by: 'pao21.maker',
-                  status: 'Pending Checker Approval',
-                  at: new Date().toISOString(),
-                },
-              }
-            : x
-        )
-      );
-      showToast(`Manual override proposed for ${overrideModal.reconCode}. Routed to PAO Checker.`, 'success');
+      setLoading(true);
+      await api.proposeOverride({
+        recon_id: overrideModal.id,
+        proposed_status: overrideStatus,
+        justification: overrideReason,
+      });
+      showToast(`Manual override proposed for ${overrideModal.reconCode}. Saved in database and routed to PAO Checker.`, 'success');
       setOverrideModal(null);
       setOverrideReason('');
+      await fetchData();
+      triggerRefresh();
     } catch (err: any) {
-      showToast(err.message || 'Override failed', 'error');
+      showToast(err.message || 'Override proposal failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecideOverride = async (approved: boolean) => {
+    if (!selectedRow) return;
+    try {
+      setLoading(true);
+      await api.decideOverride({
+        override_id: selectedRow.override?.id || selectedRow.id,
+        decision: approved ? 'APPROVED' : 'REJECTED',
+        remarks: approved ? 'Approved by PAO Checker' : 'Rejected by PAO Checker',
+      });
+      showToast(
+        `Manual override ${approved ? 'approved' : 'rejected'} for ${selectedRow.reconCode}. Database updated.`,
+        approved ? 'success' : 'info'
+      );
+      setSelectedRow(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Decision failed', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -805,19 +828,31 @@ export const ReconPage: React.FC = () => {
             <div className="modal-b">
               <div className="grid g3 mb12">
                 <div className="kpi">
-                  <div className="kpi-v">{money(items.reduce((a, b) => a + b.portalAmt, 0))}</div>
+                  <div className="kpi-v">
+                    {money(dbSummary?.control_totals?.portal?.amount ?? items.reduce((a, b) => a + b.portalAmt, 0))}
+                  </div>
                   <div className="kpi-l">Portal Total</div>
-                  <div className="kpi-s">{cnt(items.length)} records</div>
+                  <div className="kpi-s">
+                    {cnt(dbSummary?.control_totals?.portal?.count ?? items.filter(r => r.portalAmt > 0).length)} records
+                  </div>
                 </div>
                 <div className="kpi">
-                  <div className="kpi-v">{money(items.reduce((a, b) => a + b.bankAmt, 0))}</div>
+                  <div className="kpi-v">
+                    {money(dbSummary?.control_totals?.bank?.amount ?? items.reduce((a, b) => a + b.bankAmt, 0))}
+                  </div>
                   <div className="kpi-l">Agency Bank Total</div>
-                  <div className="kpi-s">{cnt(items.length)} scroll lines</div>
+                  <div className="kpi-s">
+                    {cnt(dbSummary?.control_totals?.bank?.count ?? items.filter(r => r.bankAmt > 0).length)} scroll lines
+                  </div>
                 </div>
                 <div className="kpi">
-                  <div className="kpi-v">{money(items.reduce((a, b) => a + b.rbiAmt, 0))}</div>
+                  <div className="kpi-v">
+                    {money(dbSummary?.control_totals?.rbi?.amount ?? items.reduce((a, b) => a + b.rbiAmt, 0))}
+                  </div>
                   <div className="kpi-l">RBI Credit Total</div>
-                  <div className="kpi-s">{cnt(items.length)} credits</div>
+                  <div className="kpi-s">
+                    {cnt(dbSummary?.control_totals?.rbi?.count ?? items.filter(r => r.rbiAmt > 0).length)} credits
+                  </div>
                 </div>
               </div>
 
@@ -859,15 +894,34 @@ export const ReconPage: React.FC = () => {
                     <td><span className="badge b-red">Mismatch</span></td>
                     <td className="num">{cnt(mismatch.length)}</td>
                     <td className="num">{money(mismatch.reduce((a, b) => a + b.portalAmt, 0))}</td>
-                    <td className="num">{money(mismatchAmt)}</td>
+                    <td className="num" style={{ color: 'var(--red-700, #c92a2a)' }}>{money(mismatchAmt)}</td>
                   </tr>
                   <tr>
                     <td><span className="badge b-red">Duplicate</span></td>
                     <td className="num">{cnt(duplicate.length)}</td>
-                    <td className="num">{money(duplicate.reduce((a, b) => a + b.portalAmt, 0))}</td>
-                    <td className="num">{money(dupAmt)}</td>
+                    <td className="num">{money(duplicate.reduce((a, b) => a + b.bankAmt, 0))}</td>
+                    <td className="num" style={{ color: 'var(--red-700, #c92a2a)' }}>{money(dupAmt)}</td>
                   </tr>
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td className="strong">Total ({cnt(items.length)} records)</td>
+                    <td className="num strong">{cnt(items.length)}</td>
+                    <td className="num strong">
+                      {money(
+                        matchedAmt +
+                        pendingAmt +
+                        suspenseAmt +
+                        ratAmt +
+                        mismatch.reduce((a, b) => a + b.portalAmt, 0) +
+                        duplicate.reduce((a, b) => a + b.bankAmt, 0)
+                      )}
+                    </td>
+                    <td className="num strong" style={{ color: 'var(--red-700, #c92a2a)' }}>
+                      {money(mismatchAmt + dupAmt)}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
@@ -1182,19 +1236,13 @@ export const ReconPage: React.FC = () => {
                         <div className="flex gap8 mt12">
                           <button
                             className="btn btn-ok btn-sm"
-                            onClick={() => {
-                              selectedRow.override.status = 'Approved';
-                              showToast('Manual override approved by PAO Checker.', 'success');
-                            }}
+                            onClick={() => handleDecideOverride(true)}
                           >
                             Approve override
                           </button>
                           <button
                             className="btn btn-dgr btn-sm"
-                            onClick={() => {
-                              selectedRow.override.status = 'Rejected';
-                              showToast('Manual override rejected.', 'error');
-                            }}
+                            onClick={() => handleDecideOverride(false)}
                           >
                             Reject override
                           </button>

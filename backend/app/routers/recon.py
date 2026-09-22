@@ -41,6 +41,19 @@ async def list_recon_results(
         db, status, source_id, match_rule_id, search, limit, offset
     )
 
+@router.get("/summary", dependencies=[Depends(require_capability("nav.recon"))])
+async def get_recon_summary(
+    db: AsyncSession = Depends(get_db),
+):
+    return await ReconEngine.get_recon_summary(db)
+
+@router.post("/reset", dependencies=[Depends(require_capability("recon.reset"))])
+async def reset_recon(
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await ReconEngine.reset_recon_results(db)
+
 @router.get("/results/{recon_id}", dependencies=[Depends(require_capability("nav.recon"))])
 async def get_recon_detail(
     recon_id: int,

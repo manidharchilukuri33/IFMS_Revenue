@@ -750,6 +750,92 @@ class ReconEngineService:
         await self.db.refresh(recon)
         return recon
 
+    async def get_summary(self) -> Dict[str, Any]:
+        # 1. Total Staged Portal records
+        p_q = select(func.count(RevPortalTransactionStaging.portal_item_id), func.coalesce(func.sum(RevPortalTransactionStaging.amount), Decimal("0.00")))
+        p_res = (await self.db.execute(p_q)).first()
+        portal_count = p_res[0] or 0
+        portal_total = float(p_res[1] or Decimal("0.00"))
+
+        # 2. Total Staged Bank Scroll records
+        b_q = select(func.count(RevAgencyBankScrollStaging.scroll_item_id), func.coalesce(func.sum(RevAgencyBankScrollStaging.amount), Decimal("0.00")))
+        b_res = (await self.db.execute(b_q)).first()
+        bank_count = b_res[0] or 0
+        bank_total = float(b_res[1] or Decimal("0.00"))
+
+        # 3. Total Staged RBI Luggage records
+        r_q = select(func.count(RevRbiLuggageStaging.rbi_item_id), func.coalesce(func.sum(RevRbiLuggageStaging.amount), Decimal("0.00")))
+        r_res = (await self.db.execute(r_q)).first()
+        rbi_count = r_res[0] or 0
+        rbi_total = float(r_res[1] or Decimal("0.00"))
+
+        # 4. Status aggregations from RevReconResult
+        st_q = select(
+            RevReconResult.status,
+            func.count(RevReconResult.recon_id),
+            func.coalesce(func.sum(RevReconResult.portal_total), Decimal("0.00")),
+            func.coalesce(func.sum(RevReconResult.bank_total), Decimal("0.00")),
+            func.coalesce(func.sum(RevReconResult.rbi_total), Decimal("0.00")),
+            func.coalesce(func.sum(func.abs(RevReconResult.amount_difference)), Decimal("0.00")),
+            func.coalesce(func.sum(RevReconResult.penal_interest_amount), Decimal("0.00"))
+        ).group_by(RevReconResult.status)
+        st_res = (await self.db.execute(st_q)).all()
+
+        status_breakdown = {
+            "Matched": {"count": 0, "gross_amount": 0.0, "variance_amount": 0.0},
+            "Pending": {"count": 0, "gross_amount": 0.0, "variance_amount": 0.0},
+            "Suspend": {"count": 0, "gross_amount": 0.0, "variance_amount": 0.0},
+            "RAT": {"count": 0, "gross_amount": 0.0, "variance_amount": 0.0},
+            "Mismatch": {"count": 0, "gross_amount": 0.0, "variance_amount": 0.0},
+            "Duplicate": {"count": 0, "gross_amount": 0.0, "variance_amount": 0.0},
+        }
+        total_penal = Decimal("0.00")
+        for row in st_res:
+            st, cnt, p_amt, b_amt, r_amt, diff, penal = row
+            status_breakdown[st] = {
+                "count": cnt,
+                "portal_amount": float(p_amt),
+                "bank_amount": float(b_amt),
+                "rbi_amount": float(r_amt),
+                "gross_amount": float(p_amt if st != "RAT" else r_amt),
+                "variance_amount": float(diff if st in ["Mismatch", "Duplicate"] else Decimal("0.00")),
+                "penal_amount": float(penal)
+            }
+            total_penal += penal
+
+        return {
+            "control_totals": {
+                "portal": {"count": portal_count, "amount": portal_total},
+                "bank": {"count": bank_count, "amount": bank_total},
+                "rbi": {"count": rbi_count, "amount": rbi_total}
+            },
+            "status_breakdown": status_breakdown,
+            "total_penal_interest": float(total_penal)
+        }
+
+    async def reset_reconciliation(self) -> Dict[str, Any]:
+        tables = [
+            'rev_recon_override',
+            'rev_recon_leg_linkage',
+            'rev_recon_result',
+            'rev_recon_run',
+            'rev_penal_waiver',
+            'rev_penal_bank_response',
+            'rev_penal_letter',
+            'rev_penal_claim',
+            'rev_exception_note',
+            'rev_exception_letter',
+            'rev_exception',
+            'rev_suspense_register'
+        ]
+        for t in tables:
+            try:
+                await self.db.execute(text(f"TRUNCATE TABLE ifms_budget.{t} CASCADE"))
+            except Exception:
+                await self.db.execute(text(f"DELETE FROM ifms_budget.{t}"))
+        await self.db.commit()
+        return {"status": "SUCCESS", "message": "Reconciliation ledger reset successfully. Uploaded source data retained."}
+
 class ReconEngine:
     @staticmethod
     async def run_3way_reconciliation(
@@ -794,6 +880,16 @@ class ReconEngine:
             "total": total,
             "items": items
         }
+
+    @staticmethod
+    async def get_recon_summary(db: AsyncSession) -> Dict[str, Any]:
+        svc = ReconEngineService(db)
+        return await svc.get_summary()
+
+    @staticmethod
+    async def reset_recon_results(db: AsyncSession) -> Dict[str, Any]:
+        svc = ReconEngineService(db)
+        return await svc.reset_reconciliation()
 
     @staticmethod
     async def get_recon_detail(db: AsyncSession, recon_id: int) -> Dict[str, Any]:

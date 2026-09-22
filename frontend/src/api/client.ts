@@ -257,6 +257,29 @@ class ApiClient {
     return this.getReconResults(params);
   }
 
+  async getReconSummary() {
+    return this.request<{
+      control_totals: {
+        portal: { count: number; amount: number };
+        bank: { count: number; amount: number };
+        rbi: { count: number; amount: number };
+      };
+      status_breakdown: Record<string, {
+        count: number;
+        gross_amount: number;
+        variance_amount: number;
+        penal_amount: number;
+      }>;
+      total_penal_interest: number;
+    }>('/recon/summary');
+  }
+
+  async resetReconciliation() {
+    return this.request<{ status: string; message: string }>('/recon/reset', {
+      method: 'POST',
+    });
+  }
+
   async getReconDetail(reconId: number) {
     return this.request<ReconDetail>(`/recon/results/${reconId}`);
   }
