@@ -235,6 +235,59 @@ class VoucherService:
         }
 
     @staticmethod
+    async def create_single_voucher(
+        db: AsyncSession,
+        recon_id: int,
+        narration: Optional[str],
+        user_id: int,
+    ) -> AccountVoucher:
+        recon = await db.get(RevReconResult, recon_id)
+        if not recon:
+            raise NotFoundException(f"Recon record with ID {recon_id} not found")
+
+        # Resolve COA from config
+        cfg_res = await db.execute(select(RevSystemConfig).where(RevSystemConfig.config_id == 1))
+        config = cfg_res.scalar_one_or_none()
+        susp_head_id = config.suspense_head_id if config and config.suspense_head_id else 1
+        
+        dr_head_id = susp_head_id
+        cr_head_id = getattr(recon, 'receipt_head_id', 1) or 1
+
+        seq_res = await db.execute(
+            text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
+            {"seq_key": "VOUCHER_SEQ", "prefix": "VCH", "fy": "2026-27"}
+        )
+        voucher_no = seq_res.scalar() or f"VCH-2026-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        amt = recon.rbi_total or recon.portal_total or Decimal("0.00")
+        narr = narration or f"Receipt voucher booked on 3-way reconciliation completion for challan {recon.challan_no}"
+
+        vch = AccountVoucher(
+            voucher_no=voucher_no,
+            voucher_type="REVENUE_RECEIPT",
+            voucher_date=date.today(),
+            financial_year="2026-27",
+            pao_code=recon.pao_code or "PAO21",
+            amount=amt,
+            debit_coa_id=dr_head_id,
+            credit_coa_id=cr_head_id,
+            recon_id=recon.recon_id,
+            payee_name=recon.payer_name,
+            narration=narr,
+            status="Draft",
+            prepared_by=user_id,
+            prepared_at=datetime.now(),
+            organization_id=1,
+            org_branch_id=1,
+            created_by=user_id,
+        )
+        db.add(vch)
+        recon.booking_status = "DRAFT_VOUCHER_CREATED"
+        await db.commit()
+        await db.refresh(vch)
+        return vch
+
+    @staticmethod
     async def approve_vouchers_bulk(
         db: AsyncSession,
         req: BulkVoucherApproveRequest,

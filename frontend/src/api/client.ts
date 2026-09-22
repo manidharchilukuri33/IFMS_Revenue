@@ -550,6 +550,13 @@ class ApiClient {
     return this.getVouchers(params?.status, params?.pao_code);
   }
 
+  async createSingleVoucher(reconId: number, narration?: string) {
+    return this.request<any>('/accounting/vouchers/create', {
+      method: 'POST',
+      body: JSON.stringify({ recon_id: reconId, narration }),
+    });
+  }
+
   async generateVouchersBulk(paoCode: string = 'PAO21') {
     return this.request<any>('/accounting/vouchers/generate-bulk', {
       method: 'POST',

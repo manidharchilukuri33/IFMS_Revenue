@@ -32,6 +32,16 @@ async def get_voucher_detail(
 ):
     return await VoucherService.get_voucher_detail(db, voucher_id)
 
+@router.post("/vouchers/create", dependencies=[Depends(require_capability("voucher.create"))])
+async def create_single_voucher(
+    payload: Dict[str, Any] = Body(...),
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    recon_id = payload.get("recon_id") or payload.get("id") or 1
+    narration = payload.get("narration")
+    return await VoucherService.create_single_voucher(db, recon_id, narration, user.user_id)
+
 @router.post("/vouchers/generate-bulk", dependencies=[Depends(require_capability("voucher.create"))])
 async def generate_vouchers_bulk(
     req: BulkVoucherCreateRequest,

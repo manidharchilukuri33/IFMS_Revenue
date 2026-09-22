@@ -73,6 +73,8 @@ export const AccountingPage: React.FC = () => {
         if (item.status === 'Matched') {
           if (item.booking === 'Booked' || item.booking === 'BOOKED') {
             booked.push(item);
+          } else if (item.booking === 'DRAFT_VOUCHER_CREATED' || item.booking === 'Draft') {
+            // Already drafted, awaiting PAO Checker approval
           } else {
             ready.push(item);
           }
@@ -132,10 +134,10 @@ export const AccountingPage: React.FC = () => {
 
     try {
       setLoading(true);
-      await api.generateVouchersBulk(createVchRow.pao || 'PAO21');
+      await api.createSingleVoucher(createVchRow.id, vchNarration);
       showToast(`Receipt voucher created as Draft for ${createVchRow.challan}! Awaiting PAO Checker approval.`, 'success');
       setCreateVchRow(null);
-      fetchData();
+      await fetchData();
       triggerRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to create voucher', 'error');
@@ -152,8 +154,8 @@ export const AccountingPage: React.FC = () => {
     try {
       setLoading(true);
       const res = await api.generateVouchersBulk('PAO21');
-      showToast(`Booking vouchers generated successfully! (${res.vouchers_created || readyList.length} created)`, 'success');
-      fetchData();
+      showToast(`Booking vouchers generated successfully! (${res.draft_vouchers_count || res.vouchers_created || readyList.length} created)`, 'success');
+      await fetchData();
       triggerRefresh();
     } catch (err: any) {
       showToast(err.message || 'Bulk voucher creation failed', 'error');
@@ -169,7 +171,7 @@ export const AccountingPage: React.FC = () => {
       await api.approveSingleVoucher(v.id, `Approved voucher ${v.no}`);
       showToast(`Receipt voucher ${v.no} approved and posted to General Ledger!`, 'success');
       setSelectedVoucher(null);
-      fetchData();
+      await fetchData();
       triggerRefresh();
     } catch (err: any) {
       showToast(err.message || 'Approval failed', 'error');
@@ -186,8 +188,8 @@ export const AccountingPage: React.FC = () => {
     try {
       setLoading(true);
       const res = await api.approveVouchersBulk('All draft booking vouchers approved via UI');
-      showToast(`Approved and posted all ${res.vouchers_approved || draftVouchers.length} draft vouchers successfully!`, 'success');
-      fetchData();
+      showToast(`Approved and posted all ${res.approved_vouchers_count || res.vouchers_approved || draftVouchers.length} draft vouchers successfully!`, 'success');
+      await fetchData();
       triggerRefresh();
     } catch (err: any) {
       showToast(err.message || 'Bulk voucher approval failed', 'error');
