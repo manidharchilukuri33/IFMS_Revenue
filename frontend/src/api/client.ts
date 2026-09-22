@@ -449,6 +449,27 @@ class ApiClient {
     });
   }
 
+  async advanceRefundStage(refundId: number, payload: { action: string; remarks?: string; verification_type?: string; verification_result?: string; authority_name?: string }) {
+    return this.request<RefundCase>(`/refunds/${refundId}/advance`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async rejectRefundCase(refundId: number, remarks: string = 'Rejected in scrutiny') {
+    return this.request<RefundCase>(`/refunds/${refundId}/advance`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'REJECT', remarks }),
+    });
+  }
+
+  async raiseRefundDeficiency(refundId: number, remarks: string) {
+    return this.request<RefundCase>(`/refunds/${refundId}/advance`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'RAISE_DEFICIENCY', remarks }),
+    });
+  }
+
   // 9. Citizen Public Portal
   async trackCitizenRefund(caseNo: string) {
     return this.request<{ refund: RefundCase; timeline: RefundTimeline[] }>(`/citizen/track/${caseNo}`);

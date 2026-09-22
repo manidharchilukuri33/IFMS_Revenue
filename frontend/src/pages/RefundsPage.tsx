@@ -127,18 +127,19 @@ export const RefundsPage: React.FC = () => {
       ]);
       setPaos(paoRes || []);
 
-      const mapped: RefundItem[] = (res.items || []).map((r: any, idx: number) => {
-        const origAmt = Number(r.original_amount || r.origAmount || 60000);
-        const claimAmt = Number(r.claim_amount || r.refund_claim_amount || origAmt);
-        const valAmt = r.validated_amount ? Number(r.validated_amount) : claimAmt;
+      const rawItems = res?.items || (Array.isArray(res) ? res : []);
+      const mapped: RefundItem[] = rawItems.map((r: any, idx: number) => {
+        const origAmt = Number(r.reconciled_original_amount ?? r.original_amount ?? r.origAmount ?? 60000);
+        const claimAmt = Number(r.claimed_amount ?? r.claim_amount ?? r.refund_claim_amount ?? origAmt);
+        const valAmt = r.refundable_amount != null ? Number(r.refundable_amount) : (r.validated_amount ? Number(r.validated_amount) : claimAmt);
         const status = r.status || (idx === 0 ? 'Approved' : idx === 1 ? 'Under Verification' : 'Submitted');
 
         return {
-          id: r.id || idx + 1,
-          caseNo: r.case_number || r.refund_case_no || `REF-NJ-2026-000${idx + 1}`,
+          id: r.refund_id ?? r.id ?? idx + 1,
+          caseNo: r.case_no ?? r.case_number ?? r.refund_case_no ?? `REF-NJ-2026-000${idx + 1}`,
           type: (r.refund_type || (idx % 2 === 0 ? 'NON_JUDICIAL_STAMP' : 'JUDICIAL_STAMP')) as any,
-          applicant: r.applicant_name || 'Anita Sharma',
-          applicantId: r.applicant_id || 'PAN-AABCA1111A',
+          applicant: r.applicant_name || 'Applicant',
+          applicantId: r.applicant_id_proof || r.applicant_id || 'PAN-AABCA1111A',
           dept: r.department_code || 'STAMPREG',
           pao: r.pao_code || 'PAO12',
           ddo: r.ddo_code || 'DDO-SR-001',
@@ -147,17 +148,17 @@ export const RefundsPage: React.FC = () => {
           origAmount: origAmt,
           claimAmount: claimAmt,
           validatedAmount: valAmt,
-          appDate: r.application_date || '2026-09-12',
-          stampCertNo: r.stamp_certificate_no || 'ESTAMP-1000001',
+          appDate: r.created_at ? r.created_at.slice(0, 10) : (r.application_date || '2026-09-12'),
+          stampCertNo: r.e_stamp_cert_no || r.stamp_certificate_no || 'ESTAMP-1000001',
           courtOrderNo: r.court_order_no,
-          bankAccount: r.bank_account_masked || 'XXXX1234',
-          ifsc: r.ifsc_code || 'SBIN0001001',
+          bankAccount: r.applicant_bank_acc || r.bank_account_masked || 'XXXX1234',
+          ifsc: r.applicant_ifsc || r.ifsc_code || 'SBIN0001001',
           status,
           priority: r.priority || 'Normal',
-          pendingAt: r.pending_at || (status === 'Approved' ? 'PAO Maker (Disbursement)' : 'DDO Scrutiny'),
-          payStatus: r.payment_status || (status === 'Paid' ? 'Paid' : 'Pending'),
-          payRef: r.payment_reference,
-          payDate: r.payment_date,
+          pendingAt: r.pending_role ? `${r.pending_role} (${r.stage_name || ''})` : (r.pending_at || (status === 'Approved' ? 'PAO Maker (Disbursement)' : status === 'Paid' ? 'Disbursed / Closed' : 'DDO Scrutiny')),
+          payStatus: status === 'Paid' ? 'Paid' : (r.payment_status || 'Pending'),
+          payRef: r.epay_ref_no || r.payment_reference,
+          payDate: r.paid_at ? r.paid_at.slice(0, 10) : r.payment_date,
         };
       });
 
@@ -282,53 +283,67 @@ export const RefundsPage: React.FC = () => {
     setPage(1);
   };
 
-  const handleApproveCase = (c: RefundItem) => {
+  const handleApproveCase = async (c: RefundItem) => {
     if (!canApprove) return;
-    setItems(prev =>
-      prev.map(x =>
-        x.id === c.id
-          ? {
-              ...x,
-              status: 'Approved',
-              pendingAt: 'PAO Maker (E-Payment Dispatch)',
-            }
-          : x
-      )
-    );
-    setSelectedCase(prev => (prev ? { ...prev, status: 'Approved', pendingAt: 'PAO Maker (E-Payment Dispatch)' } : null));
-    showToast(`Refund case ${c.caseNo} approved by PAO Checker.`, 'success');
+    try {
+      await api.approveRefundPao(c.id, 'Approved by PAO Checker');
+      showToast(`Refund case ${c.caseNo} approved by PAO Checker & persisted to database.`, 'success');
+      setSelectedCase(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to approve refund case', 'error');
+    }
   };
 
-  const handleDisburseCase = (c: RefundItem) => {
+  const handleDisburseCase = async (c: RefundItem) => {
     if (!canDisburse) return;
-    const ref = `PAY-REF-${Date.now().toString().slice(-6)}`;
-    setItems(prev =>
-      prev.map(x =>
-        x.id === c.id
-          ? {
-              ...x,
-              status: 'Paid',
-              payStatus: 'Paid',
-              payRef: ref,
-              payDate: new Date().toISOString().slice(0, 10),
-              pendingAt: 'Closed / Disbursed',
-            }
-          : x
-      )
-    );
-    setSelectedCase(prev =>
-      prev
-        ? {
-            ...prev,
-            status: 'Paid',
-            payStatus: 'Paid',
-            payRef: ref,
-            payDate: new Date().toISOString().slice(0, 10),
-            pendingAt: 'Closed / Disbursed',
-          }
-        : null
-    );
-    showToast(`Payment of ${money(c.validatedAmount || c.claimAmount)} credited via electronic mandate.`, 'success');
+    try {
+      const ref = `EPAY-REF-${Date.now().toString().slice(-8)}`;
+      await api.markRefundPaid(c.id, ref);
+      showToast(`Payment of ${money(c.validatedAmount || c.claimAmount)} credited via electronic mandate (${ref}) and persisted in DB.`, 'success');
+      setSelectedCase(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to disburse refund payment', 'error');
+    }
+  };
+
+  const handleVerifyShcil = async (c: RefundItem) => {
+    try {
+      await api.verifyShcil(c.id, c.stampCertNo || 'ESTAMP-1000001');
+      showToast(`e-Stamp validity verified with SHCIL for case ${c.caseNo}.`, 'success');
+      setSelectedCase(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to verify e-Stamp', 'error');
+    }
+  };
+
+  const handlePrepareBill = async (c: RefundItem) => {
+    try {
+      await api.prepareRefundBill(c.id, c.validatedAmount || c.claimAmount);
+      showToast(`Refund Bill prepared and submitted for PAO scrutiny for case ${c.caseNo}.`, 'success');
+      setSelectedCase(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to prepare refund bill', 'error');
+    }
+  };
+
+  const handleRejectCase = async (c: RefundItem) => {
+    try {
+      await api.rejectRefundCase(c.id, 'Application rejected during scrutiny');
+      showToast(`Refund case ${c.caseNo} marked as Rejected in database.`, 'info');
+      setSelectedCase(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to reject refund case', 'error');
+    }
   };
 
   const handleSaveNewCase = async (e: React.FormEvent) => {
@@ -337,33 +352,44 @@ export const RefundsPage: React.FC = () => {
       showToast('Applicant Name is required', 'warning');
       return;
     }
-    const newCase: RefundItem = {
-      id: Date.now(),
-      caseNo: `REF-NJ-2026-${String(items.length + 1).padStart(4, '0')}`,
-      type: newForm.refund_type as any,
-      applicant: newForm.applicant_name,
-      applicantId: newForm.applicant_id || 'PAN-AABCA1111A',
-      dept: newForm.department_code,
-      pao: newForm.pao_code,
-      ddo: newForm.ddo_code,
-      origChallan: newForm.original_challan_no,
-      origHead: '0030-00-102-01-00-01',
-      origAmount: Number(newForm.original_amount),
-      claimAmount: Number(newForm.refund_claim_amount),
-      validatedAmount: Number(newForm.refund_claim_amount),
-      appDate: new Date().toISOString().slice(0, 10),
-      stampCertNo: newForm.stamp_certificate_no,
-      courtOrderNo: newForm.court_order_no,
-      bankAccount: newForm.bank_account_number,
-      ifsc: newForm.ifsc_code,
-      status: 'Submitted',
-      priority: 'Normal',
-      pendingAt: 'Divisional Office Document Scrutiny',
-      payStatus: 'Pending',
-    };
-    setItems(prev => [newCase, ...prev]);
-    showToast(`New refund case ${newCase.caseNo} created!`, 'success');
-    setNewModal(false);
+    try {
+      const payload = {
+        refund_type: newForm.refund_type,
+        applicant_name: newForm.applicant_name.trim(),
+        applicant_id_proof: newForm.applicant_id || 'PAN-AABCA1111A',
+        applicant_bank_acc: newForm.bank_account_number,
+        bank_account_no: newForm.bank_account_number,
+        applicant_ifsc: newForm.ifsc_code,
+        ifsc_code: newForm.ifsc_code,
+        original_challan_no: newForm.original_challan_no,
+        reconciled_original_amount: Number(newForm.original_amount),
+        claimed_amount: Number(newForm.refund_claim_amount),
+        e_stamp_cert_no: newForm.stamp_certificate_no,
+        court_order_no: newForm.court_order_no || undefined,
+      };
+      const created = await api.createRefundCase(payload);
+      showToast(`New refund case ${created?.case_no || 'registered'} successfully saved in database!`, 'success');
+      setNewModal(false);
+      setNewForm({
+        refund_type: 'NON_JUDICIAL_STAMP',
+        applicant_name: '',
+        applicant_id: '',
+        original_challan_no: 'CH-ST-40001',
+        original_amount: '60000.00',
+        refund_claim_amount: '60000.00',
+        department_code: 'STAMPREG',
+        pao_code: 'PAO12',
+        ddo_code: 'DDO-SR-001',
+        stamp_certificate_no: 'ESTAMP-1000001',
+        court_order_no: '',
+        bank_account_number: 'XXXX1234',
+        ifsc_code: 'SBIN0001001',
+      });
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create refund case', 'error');
+    }
   };
 
   const handleExport = () => {
@@ -779,7 +805,23 @@ export const RefundsPage: React.FC = () => {
             </div>
 
             <div className="modal-f">
-              {canApprove && selectedCase.status === 'Submitted' && (
+              {canProcess && selectedCase.status === 'Submitted' && (
+                <button
+                  className="btn btn-sm"
+                  onClick={() => handleVerifyShcil(selectedCase)}
+                >
+                  Verify SHCIL / Stamp
+                </button>
+              )}
+              {canProcess && (selectedCase.status === 'Submitted' || selectedCase.status === 'Under Verification') && (
+                <button
+                  className="btn btn-sm"
+                  onClick={() => handlePrepareBill(selectedCase)}
+                >
+                  Prepare Refund Bill
+                </button>
+              )}
+              {canApprove && ['Submitted', 'Under Verification', 'Bill Prepared'].includes(selectedCase.status) && (
                 <button
                   className="btn btn-ok btn-sm"
                   onClick={() => handleApproveCase(selectedCase)}
@@ -793,6 +835,14 @@ export const RefundsPage: React.FC = () => {
                   onClick={() => handleDisburseCase(selectedCase)}
                 >
                   Authorize E-Payment Disbursement
+                </button>
+              )}
+              {canProcess && selectedCase.status !== 'Paid' && selectedCase.status !== 'Rejected' && (
+                <button
+                  className="btn btn-err btn-sm"
+                  onClick={() => handleRejectCase(selectedCase)}
+                >
+                  Reject Case
                 </button>
               )}
               <button className="btn btn-sm" onClick={() => setSelectedCase(null)}>
