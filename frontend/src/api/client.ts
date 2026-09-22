@@ -309,7 +309,7 @@ class ApiClient {
       if (params.limit) qp.append('limit', String(params.limit));
     }
     const qs = qp.toString() ? `?${qp.toString()}` : '';
-    return this.request<{ items: RevException[] } | RevException[]>(`/exceptions/${qs}`).then(res => {
+    return this.request<{ items: RevException[] } | RevException[]>(`/exceptions${qs}`).then(res => {
       if (Array.isArray(res)) return { items: res };
       return res;
     });
@@ -416,7 +416,7 @@ class ApiClient {
       if (status && status !== 'ALL') qp.append('status', status);
     }
     const qs = qp.toString() ? `?${qp.toString()}` : '';
-    return this.request<{ items: RefundCase[] } | RefundCase[]>(`/refunds/${qs}`).then(res => {
+    return this.request<{ items: RefundCase[] } | RefundCase[]>(`/refunds${qs}`).then(res => {
       if (Array.isArray(res)) return { items: res };
       return res;
     });
@@ -431,7 +431,7 @@ class ApiClient {
   }
 
   async createRefundCase(payload: any) {
-    return this.request<RefundCase>('/refunds/', {
+    return this.request<RefundCase>('/refunds', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -698,7 +698,7 @@ class ApiClient {
       qp.append('limit', String(limit));
     }
     const qs = qp.toString() ? `?${qp.toString()}` : '';
-    return this.request<{ items: AuditLog[] } | AuditLog[]>(`/audit/${qs}`).then(res => {
+    return this.request<{ items: AuditLog[] } | AuditLog[]>(`/audit${qs}`).then(res => {
       if (Array.isArray(res)) return { items: res };
       return res;
     });

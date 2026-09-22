@@ -12,6 +12,7 @@ from app.services.refund_service import RefundService
 router = APIRouter(prefix="/api/refunds", tags=["Refund Workflow Engine"])
 
 @router.get("", dependencies=[Depends(require_capability("nav.refund"))])
+@router.get("/", dependencies=[Depends(require_capability("nav.refund"))])
 @router.get("/cases", dependencies=[Depends(require_capability("nav.refund"))])
 async def list_refund_cases(
     refund_type: Optional[str] = Query(None),
@@ -26,6 +27,7 @@ async def list_refund_cases(
     )
 
 @router.post("", dependencies=[Depends(require_capability("refund.create"))])
+@router.post("/", dependencies=[Depends(require_capability("refund.create"))])
 @router.post("/cases", dependencies=[Depends(require_capability("refund.create"))])
 async def create_refund_case(
     req: RefundCaseCreate,
