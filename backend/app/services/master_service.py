@@ -135,8 +135,20 @@ class MasterService:
         query = select(ChartOfAccount)
         if is_active is not None:
             query = query.where(ChartOfAccount.is_active == is_active)
-        res = await db.execute(query.order_by(ChartOfAccount.full_head_code).limit(100))
+        res = await db.execute(query.order_by(ChartOfAccount.coa_code).limit(100))
         return list(res.scalars().all())
+
+    @staticmethod
+    async def get_paos(db: AsyncSession) -> List[Dict[str, Any]]:
+        paos = [
+            {"pao_code": "PAO21", "pao_name": "PAO 21 — Trade & Taxes (GST/VAT)", "dept_code": "TT"},
+            {"pao_code": "PAO04", "pao_name": "PAO 04 — State Excise", "dept_code": "EXCISE"},
+            {"pao_code": "PAO08", "pao_name": "PAO 08 — Transport Dept (Vahan)", "dept_code": "TPT"},
+            {"pao_code": "PAO06", "pao_name": "PAO 06 — Stamps & Registration (NGDRS)", "dept_code": "REV"},
+            {"pao_code": "PAO10", "pao_name": "PAO 10 — Land Revenue & Mining", "dept_code": "REV"},
+            {"pao_code": "PAO01", "pao_name": "PAO 01 — Secretariat Central", "dept_code": "FIN"},
+        ]
+        return paos
 
     @staticmethod
     async def get_system_config(db: AsyncSession) -> Dict[str, Any]:

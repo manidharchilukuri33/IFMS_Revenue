@@ -31,7 +31,7 @@ class DevolutionService:
                 RevLocalBody.local_body_name,
                 RevRevenueSource.source_code,
                 RevRevenueSource.source_name,
-                ChartOfAccount.head_code,
+                ChartOfAccount.coa_code,
             )
             .outerjoin(RevLocalBody, RevDevolutionClaim.local_body_id == RevLocalBody.local_body_id)
             .outerjoin(RevRevenueSource, RevDevolutionClaim.source_id == RevRevenueSource.source_id)
@@ -49,7 +49,7 @@ class DevolutionService:
                 (RevLocalBody.local_body_code.ilike(f"%{search}%"))
             )
 
-        count_query = select(func.count(RevDevolutionClaim.claim_id)).select_from(query.subquery())
+        count_query = select(func.count()).select_from(query.subquery())
         total_count = (await db.execute(count_query)).scalar() or 0
 
         query = query.order_by(desc(RevDevolutionClaim.claim_id)).limit(limit).offset(offset)
@@ -57,7 +57,7 @@ class DevolutionService:
         rows = result.all()
 
         items = []
-        for claim, lb_code, lb_name, s_code, s_name, head_code in rows:
+        for claim, lb_code, lb_name, s_code, s_name, coa_code in rows:
             claim_dict = {
                 "claim_id": claim.claim_id,
                 "id": claim.claim_id,
@@ -71,7 +71,7 @@ class DevolutionService:
                 "source_name": s_name or "Stamps",
                 "revenue_source": s_code or "STAMP",
                 "receipt_head_id": claim.receipt_head_id,
-                "receipt_head": head_code or "0030-00-102-01-00-01",
+                "receipt_head": coa_code or "0030-00-102-01-00-01",
                 "period_from": claim.period_from.isoformat() if claim.period_from else None,
                 "period_to": claim.period_to.isoformat() if claim.period_to else None,
                 "claim_period_from": claim.period_from.isoformat() if claim.period_from else None,
@@ -252,10 +252,11 @@ class DevolutionService:
         # Local body
         lb = await db.get(RevLocalBody, claim.local_body_id)
         local_body_meta = {
-            "body_code": lb.body_code if lb else "",
-            "body_name": lb.body_name if lb else "",
+            "local_body_code": lb.local_body_code if lb else "",
+            "local_body_name": lb.local_body_name if lb else "",
+            "body_code": lb.local_body_code if lb else "",
+            "body_name": lb.local_body_name if lb else "",
             "body_type": lb.body_type if lb else "",
-            "district_name": lb.district_name if lb else "",
             "bank_account_no": lb.bank_account_no if lb else "",
             "ifsc_code": lb.ifsc_code if lb else "",
             "bank_name": lb.bank_name if lb else "",

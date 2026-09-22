@@ -76,6 +76,11 @@ async def create_local_body(req: LocalBodyCreate, db: AsyncSession = Depends(get
 async def list_chart_of_accounts(is_active: Optional[bool] = Query(None), db: AsyncSession = Depends(get_db)):
     return await MasterService.get_chart_of_accounts(db, is_active)
 
+@router.get("/paos", dependencies=[Depends(require_capability("nav.masters"))])
+@router.get("/pao", dependencies=[Depends(require_capability("nav.masters"))])
+async def list_paos(db: AsyncSession = Depends(get_db)):
+    return await MasterService.get_paos(db)
+
 @router.get("/system-config", dependencies=[Depends(require_capability("nav.masters"))])
 @router.get("/config", dependencies=[Depends(require_capability("nav.masters"))])
 async def get_system_config(db: AsyncSession = Depends(get_db)):
