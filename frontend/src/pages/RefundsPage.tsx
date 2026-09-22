@@ -259,6 +259,21 @@ export const RefundsPage: React.FC = () => {
   );
   const rejectedCases = items.filter(r => r.status === 'Rejected');
 
+  // Dynamic average processing turnaround time calculation from live DB items
+  const processedCases = items.filter(r => r.status === 'Paid' || r.status === 'Approved' || r.status === 'Rejected');
+  const avgProcessingDays = (() => {
+    if (items.length === 0) return '0.0';
+    const targetCases = processedCases.length > 0 ? processedCases : items;
+    const totalDays = targetCases.reduce((sum, c) => {
+      const start = new Date(c.appDate).getTime();
+      const end = c.payDate ? new Date(c.payDate).getTime() : Date.now();
+      const diffDays = Math.max(0.1, (end - start) / (1000 * 60 * 60 * 24));
+      return sum + diffDays;
+    }, 0);
+    const avg = totalDays / targetCases.length;
+    return avg < 1 ? avg.toFixed(1) : (Math.round(avg * 10) / 10).toFixed(1);
+  })();
+
   // Filter application
   const filtered = items.filter(r => {
     if (filters.type && r.type !== filters.type) return false;
@@ -502,7 +517,7 @@ export const RefundsPage: React.FC = () => {
         <div className="kpi err">
           <div className="lab">Rejected</div>
           <div className="val">{cnt(rejectedCases.length)}</div>
-          <div className="sec">Average processing 3.5 day(s)</div>
+          <div className="sec">Average processing {avgProcessingDays} day(s)</div>
         </div>
       </div>
 
