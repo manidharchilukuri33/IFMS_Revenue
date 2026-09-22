@@ -76,12 +76,20 @@ class DevolutionAdviceResponse(BaseModel):
     workflow_status: Optional[str] = "DRAFT"
 
 class DevolutionClaimCreate(BaseModel):
-    local_body_id: int
-    source_id: int
+    local_body_id: Optional[int] = None
+    local_body_code: Optional[str] = None
+    source_id: Optional[int] = None
+    revenue_source: Optional[str] = None
+    source_code: Optional[str] = None
     receipt_head_id: Optional[int] = 1
-    period_from: date
-    period_to: date
-    claimed_amount: Optional[Decimal] = Decimal("0.00")
+    receipt_head: Optional[str] = None
+    period_from: Optional[date] = None
+    claim_period_from: Optional[date] = None
+    period_to: Optional[date] = None
+    claim_period_to: Optional[date] = None
+    claimed_amount: Optional[Decimal] = None
+    claim_amount: Optional[Decimal] = None
+    calculation_basis: Optional[str] = None
     dev_rule_id: Optional[int] = None
     organization_id: Optional[int] = 1
     org_branch_id: Optional[int] = 1
@@ -92,15 +100,24 @@ class DevolutionClaimResponse(BaseModel):
     claim_id: int
     claim_no: str
     local_body_id: int
+    local_body_code: Optional[str] = None
+    local_body_name: Optional[str] = None
     source_id: int
+    source_code: Optional[str] = None
+    source_name: Optional[str] = None
+    revenue_source: Optional[str] = None
     receipt_head_id: int
+    receipt_head: Optional[str] = None
     dev_rule_id: Optional[int] = None
     period_from: date
     period_to: date
+    claim_period_from: Optional[date] = None
+    claim_period_to: Optional[date] = None
     eligible_collections: Decimal
     share_pct: Decimal
     computed_entitlement: Decimal
     claimed_amount: Decimal
+    claim_amount: Optional[Decimal] = None
     variance_amount: Decimal
     approved_amount: Decimal
     status: str
@@ -124,6 +141,6 @@ class DevolutionClaimDetailResponse(BaseModel):
     local_body: Optional[dict] = None
 
 class ApproveDevolutionRequest(BaseModel):
-    approved_amount: Decimal
+    approved_amount: Optional[Decimal] = None
     scrutiny_remarks: Optional[str] = "Approved by Treasury Officer"
     debit_head_id: Optional[int] = 1

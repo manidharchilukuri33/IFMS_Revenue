@@ -76,32 +76,33 @@ export const DevolutionPage: React.FC = () => {
       setLocalBodies(bodiesRes || []);
       setRules(rulesRes || []);
 
-      const mapped: DevolutionItem[] = (res.items || []).map((c: any, idx: number) => {
-        const claimAmt = Number(c.claim_amount || 17000);
-        const compAmt = Number(c.computed_entitlement || (idx === 0 ? 17000 : 1200));
-        const variance = Number(c.variance_amount || claimAmt - compAmt);
-        const status = c.status || (idx === 0 ? 'Approved' : 'Submitted');
+      const rawItems = res?.items || (Array.isArray(res) ? res : []);
+      const mapped: DevolutionItem[] = rawItems.map((c: any, idx: number) => {
+        const claimAmt = Number(c.claimed_amount ?? c.claim_amount ?? 17000);
+        const compAmt = Number(c.computed_entitlement ?? (idx === 0 ? 17000 : 1200));
+        const variance = Number(c.variance_amount ?? (claimAmt - compAmt));
+        const status = c.status || 'Claim Received';
 
         return {
-          id: c.id || idx + 1,
-          claimNo: c.claim_number || c.claim_no || `DEV-2026-000${idx + 1}`,
-          body: c.local_body_code || (idx === 0 ? 'MC-A' : 'MC-B'),
-          bodyName: c.local_body_name || (idx === 0 ? 'Municipal Corporation A' : 'Municipal Corporation B'),
-          source: c.revenue_source || (idx === 0 ? 'STAMP' : 'TRANSPORT'),
-          head: c.receipt_head || (idx === 0 ? '0030-00-102-01-00-01' : '0041-00-101-01-00-01'),
-          from: c.claim_period_from || '2026-09-01',
-          to: c.claim_period_to || '2026-09-10',
-          eligible: idx === 0 ? 170000 : 24000,
+          id: c.claim_id ?? c.id ?? idx + 1,
+          claimNo: c.claim_no ?? c.claim_number ?? `DEV-2026-000${idx + 1}`,
+          body: c.local_body_code || 'MC-A',
+          bodyName: c.local_body_name || (c.local_body_code === 'MC-A' ? 'Municipal Corporation of Delhi - North Division' : 'Municipal Corporation of Delhi - South Division'),
+          source: c.source_code || c.revenue_source || c.source_name || 'STAMP',
+          head: c.receipt_head || '0030-00-102-01-00-01',
+          from: c.period_from || c.claim_period_from || '2026-09-01',
+          to: c.period_to || c.claim_period_to || '2026-09-10',
+          eligible: Number(c.eligible_collections || 170000),
           eligibleCount: idx === 0 ? 2 : 1,
-          rulePct: idx === 0 ? 10 : 5,
+          rulePct: Number(c.share_pct || 10),
           computed: compAmt,
           claimAmount: claimAmt,
           variance,
-          approvedAmount: c.approved_amount ? Number(c.approved_amount) : compAmt,
+          approvedAmount: Number(c.approved_amount || compAmt),
           status,
-          payStatus: c.payment_status || (status === 'Settled' ? 'Paid' : 'Not Paid'),
-          adviceNo: c.devolution_advice_no,
-          submitted: c.submitted_date || '2026-09-12',
+          payStatus: (status === 'Settled' || c.advice_no) ? 'Paid' : (c.payment_status || 'Not Paid'),
+          adviceNo: c.advice_no || c.devolution_advice_no,
+          submitted: c.created_at ? c.created_at.slice(0, 10) : (c.submitted_date || '2026-09-12'),
         };
       });
 
@@ -146,69 +147,64 @@ export const DevolutionPage: React.FC = () => {
     setPage(1);
   };
 
-  const handleApproveClaim = (c: DevolutionItem) => {
+  const handleApproveClaim = async (c: DevolutionItem) => {
     if (!canApprove) return;
-    setItems(prev =>
-      prev.map(x =>
-        x.id === c.id
-          ? {
-              ...x,
-              status: 'Approved',
-              approvedAmount: x.computed,
-            }
-          : x
-      )
-    );
-    setSelectedClaim(prev => (prev ? { ...prev, status: 'Approved', approvedAmount: prev.computed } : null));
-    showToast(`Devolution claim ${c.claimNo} approved by PAO Checker for ${money(c.computed)}.`, 'success');
+    try {
+      await api.approveDevolution(c.id, {
+        approved_amount: c.computed,
+        scrutiny_remarks: 'Approved by PAO Checker based on reconciled revenue entitlement',
+      });
+      showToast(`Devolution claim ${c.claimNo} approved and advice generated in database.`, 'success');
+      setSelectedClaim(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to approve claim', 'error');
+    }
   };
 
-  const handleDisburseClaim = (c: DevolutionItem) => {
+  const handleDisburseClaim = async (c: DevolutionItem) => {
     if (!canPay) return;
-    const adv = `ADV-DEV-2026-${Date.now().toString().slice(-4)}`;
-    setItems(prev =>
-      prev.map(x =>
-        x.id === c.id
-          ? {
-              ...x,
-              status: 'Settled',
-              payStatus: 'Paid',
-              adviceNo: adv,
-            }
-          : x
-      )
-    );
-    setSelectedClaim(prev =>
-      prev ? { ...prev, status: 'Settled', payStatus: 'Paid', adviceNo: adv } : null
-    );
-    showToast(`Devolution advice ${adv} generated and payment settled to ${c.bodyName}.`, 'success');
+    try {
+      await api.issueDevolutionAdvice(c.id, c.approvedAmount || c.computed);
+      showToast(`Devolution advice issued & settled in database for ${c.claimNo}.`, 'success');
+      setSelectedClaim(null);
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to settle devolution claim', 'error');
+    }
   };
 
-  const handleSaveNewClaim = (e: React.FormEvent) => {
+  const handleSaveNewClaim = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newClaim: DevolutionItem = {
-      id: Date.now(),
-      claimNo: `DEV-2026-${String(items.length + 1).padStart(4, '0')}`,
-      body: newForm.local_body_code,
-      bodyName: newForm.local_body_code === 'MC-A' ? 'Municipal Corporation A' : 'Municipal Corporation B',
-      source: newForm.revenue_source,
-      head: newForm.receipt_head,
-      from: newForm.claim_period_from,
-      to: newForm.claim_period_to,
-      eligible: 100000,
-      eligibleCount: 1,
-      rulePct: 10,
-      computed: Number(newForm.claim_amount),
-      claimAmount: Number(newForm.claim_amount),
-      variance: 0,
-      approvedAmount: Number(newForm.claim_amount),
-      status: 'Submitted',
-      payStatus: 'Not Paid',
-      submitted: new Date().toISOString().slice(0, 10),
-    };
-    setItems(prev => [newClaim, ...prev]);
-    showToast(`Devolution claim ${newClaim.claimNo} submitted successfully!`, 'success');
-    setNewModal(false);
+    try {
+      const payload = {
+        local_body_code: newForm.local_body_code,
+        revenue_source: newForm.revenue_source,
+        receipt_head: newForm.receipt_head,
+        period_from: newForm.claim_period_from,
+        period_to: newForm.claim_period_to,
+        claimed_amount: Number(newForm.claim_amount),
+        calculation_basis: newForm.calculation_basis,
+      };
+      const created = await api.createDevolutionClaim(payload);
+      showToast(`Devolution claim ${created?.claim_no || 'submitted'} saved in database!`, 'success');
+      setNewModal(false);
+      setNewForm({
+        local_body_code: 'MC-A',
+        revenue_source: 'STAMP',
+        receipt_head: '0030-00-102-01-00-01',
+        claim_period_from: '2026-09-01',
+        claim_period_to: '2026-09-10',
+        claim_amount: '17000.00',
+        calculation_basis: '10 percent of eligible property registration collections',
+      });
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to submit devolution claim', 'error');
+    }
   };
 
   const handleExport = () => {
@@ -689,12 +685,12 @@ export const DevolutionPage: React.FC = () => {
             </div>
 
             <div className="modal-f">
-              {canApprove && selectedClaim.status === 'Submitted' && (
+              {canApprove && (selectedClaim.status === 'Submitted' || selectedClaim.status === 'Claim Received') && (
                 <button className="btn btn-ok btn-sm" onClick={() => handleApproveClaim(selectedClaim)}>
                   Approve Devolution Bill
                 </button>
               )}
-              {canPay && selectedClaim.status === 'Approved' && (
+              {canPay && (selectedClaim.status === 'Approved' || selectedClaim.status === 'Claim Received') && (
                 <button className="btn btn-p btn-sm" onClick={() => handleDisburseClaim(selectedClaim)}>
                   Issue Devolution Advice &amp; Settle
                 </button>
@@ -731,9 +727,9 @@ export const DevolutionPage: React.FC = () => {
                       value={newForm.local_body_code}
                       onChange={e => setNewForm({ ...newForm, local_body_code: e.target.value })}
                     >
-                      <option value="MC-A">Municipal Corporation A</option>
-                      <option value="MC-B">Municipal Corporation B</option>
-                      <option value="DLB-C">District Local Body C</option>
+                      <option value="MC-A">Municipal Corporation of Delhi - North (MC-A)</option>
+                      <option value="MC-B">Municipal Corporation of Delhi - South (MC-B)</option>
+                      <option value="DLB-C">District Local Body C (DLB-C)</option>
                     </select>
                   </div>
 
@@ -744,8 +740,10 @@ export const DevolutionPage: React.FC = () => {
                       value={newForm.revenue_source}
                       onChange={e => setNewForm({ ...newForm, revenue_source: e.target.value })}
                     >
-                      <option value="STAMP">STAMP (Stamps &amp; Registration)</option>
-                      <option value="TRANSPORT">TRANSPORT (Motor Vehicle Tax)</option>
+                      <option value="STAMP">STAMP (Stamps &amp; Registration Duty)</option>
+                      <option value="TRANSPORT">TRANSPORT (Transport Taxes &amp; Fees)</option>
+                      <option value="GST">GST (Goods &amp; Services Tax)</option>
+                      <option value="NONTAX">NONTAX (General Non-Tax Receipts)</option>
                     </select>
                   </div>
 
@@ -772,7 +770,7 @@ export const DevolutionPage: React.FC = () => {
                   </div>
 
                   <div className="fld">
-                    <label>Claim Amount (INR) <span className="req">*</span></label>
+                    <label>Claim Amount Submitted (INR) <span className="req">*</span></label>
                     <input
                       type="number"
                       step="0.01"
@@ -814,7 +812,7 @@ export const DevolutionPage: React.FC = () => {
             <div className="modal-h">
               <div>
                 <h3>Devolution Variance Exception Report</h3>
-                <div className="sub">Claims where submitted amount differs from system entitlement</div>
+                <div className="sub">Claims where submitted amount differs from system entitlement computed from reconciled receipts</div>
               </div>
               <button className="close" onClick={() => setVarianceModal(false)}>
                 &times;
@@ -833,17 +831,29 @@ export const DevolutionPage: React.FC = () => {
                       <th className="num">Claim Submitted</th>
                       <th className="num">Computed Entitlement</th>
                       <th className="num">Variance</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {varianceList.map(c => (
                       <tr key={c.id}>
-                        <td className="mono">{c.claimNo}</td>
+                        <td className="mono font-semibold">{c.claimNo}</td>
                         <td>{c.bodyName}</td>
-                        <td className="num">{money(c.claimAmount)}</td>
-                        <td className="num">{money(c.computed)}</td>
+                        <td className="num font-mono">{money(c.claimAmount)}</td>
+                        <td className="num font-mono">{money(c.computed)}</td>
                         <td className="num strong" style={{ color: 'var(--red-700)' }}>
                           {money(c.variance)}
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-xs btn-p"
+                            onClick={() => {
+                              setVarianceModal(false);
+                              setSelectedClaim(c);
+                            }}
+                          >
+                            Open &amp; Reconcile
+                          </button>
                         </td>
                       </tr>
                     ))}

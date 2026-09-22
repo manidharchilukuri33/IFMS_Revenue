@@ -490,6 +490,20 @@ class ApiClient {
     });
   }
 
+  async createDevolutionClaim(payload: any) {
+    return this.request<DevolutionClaim>('/devolution/claims', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async approveDevolution(claimId: number, payload: { approved_amount: number; debit_head_id?: number; scrutiny_remarks?: string }) {
+    return this.request<any>(`/devolution/claims/${claimId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async issueDevolutionAdvice(claimId: number, approvedAmount: number) {
     return this.request<DevolutionClaim>(`/devolution/claims/${claimId}/issue-advice`, {
       method: 'POST',

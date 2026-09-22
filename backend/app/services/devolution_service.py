@@ -4,7 +4,8 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, and_, text, Date
 from app.models.devolution import RevDevolutionClaim, RevDevolutionComputation, RevDevolutionAdvice
-from app.models.masters import RevDevolutionRule, RevLocalBody
+from app.models.masters import RevDevolutionRule, RevLocalBody, RevRevenueSource
+from app.models.common import ChartOfAccount
 from app.models.recon import RevReconResult
 from app.schemas.devolution import (
     DevolutionClaimCreate,
@@ -23,21 +24,76 @@ class DevolutionService:
         limit: int = 50,
         offset: int = 0,
     ) -> Dict[str, Any]:
-        query = select(RevDevolutionClaim)
+        query = (
+            select(
+                RevDevolutionClaim,
+                RevLocalBody.local_body_code,
+                RevLocalBody.local_body_name,
+                RevRevenueSource.source_code,
+                RevRevenueSource.source_name,
+                ChartOfAccount.head_code,
+            )
+            .outerjoin(RevLocalBody, RevDevolutionClaim.local_body_id == RevLocalBody.local_body_id)
+            .outerjoin(RevRevenueSource, RevDevolutionClaim.source_id == RevRevenueSource.source_id)
+            .outerjoin(ChartOfAccount, RevDevolutionClaim.receipt_head_id == ChartOfAccount.coa_id)
+        )
 
         if local_body_id:
             query = query.where(RevDevolutionClaim.local_body_id == local_body_id)
         if status:
             query = query.where(RevDevolutionClaim.status == status)
         if search:
-            query = query.where(RevDevolutionClaim.claim_no.ilike(f"%{search}%"))
+            query = query.where(
+                (RevDevolutionClaim.claim_no.ilike(f"%{search}%")) |
+                (RevLocalBody.local_body_name.ilike(f"%{search}%")) |
+                (RevLocalBody.local_body_code.ilike(f"%{search}%"))
+            )
 
-        count_query = select(func.count()).select_from(query.subquery())
+        count_query = select(func.count(RevDevolutionClaim.claim_id)).select_from(query.subquery())
         total_count = (await db.execute(count_query)).scalar() or 0
 
         query = query.order_by(desc(RevDevolutionClaim.claim_id)).limit(limit).offset(offset)
         result = await db.execute(query)
-        claims = result.scalars().all()
+        rows = result.all()
+
+        items = []
+        for claim, lb_code, lb_name, s_code, s_name, head_code in rows:
+            claim_dict = {
+                "claim_id": claim.claim_id,
+                "id": claim.claim_id,
+                "claim_no": claim.claim_no,
+                "claim_number": claim.claim_no,
+                "local_body_id": claim.local_body_id,
+                "local_body_code": lb_code or "MC-A",
+                "local_body_name": lb_name or "Municipal Corporation",
+                "source_id": claim.source_id,
+                "source_code": s_code or "STAMP",
+                "source_name": s_name or "Stamps",
+                "revenue_source": s_code or "STAMP",
+                "receipt_head_id": claim.receipt_head_id,
+                "receipt_head": head_code or "0030-00-102-01-00-01",
+                "period_from": claim.period_from.isoformat() if claim.period_from else None,
+                "period_to": claim.period_to.isoformat() if claim.period_to else None,
+                "claim_period_from": claim.period_from.isoformat() if claim.period_from else None,
+                "claim_period_to": claim.period_to.isoformat() if claim.period_to else None,
+                "eligible_collections": float(claim.eligible_collections),
+                "share_pct": float(claim.share_pct),
+                "computed_entitlement": float(claim.computed_entitlement),
+                "claimed_amount": float(claim.claimed_amount),
+                "claim_amount": float(claim.claimed_amount),
+                "variance_amount": float(claim.variance_amount),
+                "approved_amount": float(claim.approved_amount) if claim.approved_amount else float(claim.computed_entitlement),
+                "status": claim.status,
+                "scrutiny_remarks": claim.scrutiny_remarks,
+                "bill_no": claim.bill_no,
+                "advice_no": claim.advice_no,
+                "devolution_advice_no": claim.advice_no,
+                "epay_ref_no": claim.epay_ref_no,
+                "settled_at": claim.settled_at.isoformat() if claim.settled_at else None,
+                "created_at": claim.created_at.isoformat() if claim.created_at else None,
+                "submitted_date": claim.created_at.date().isoformat() if claim.created_at else None,
+            }
+            items.append(claim_dict)
 
         # Summary KPIs
         summary_query = select(
@@ -51,13 +107,13 @@ class DevolutionService:
 
         return {
             "total": total_count,
-            "items": claims,
+            "items": items,
             "summary": {
                 "total_claims": sum_res.total_claims if sum_res else 0,
-                "total_collections": sum_res.total_collections if sum_res else Decimal("0.00"),
-                "total_entitled": sum_res.total_entitled if sum_res else Decimal("0.00"),
-                "total_claimed": sum_res.total_claimed if sum_res else Decimal("0.00"),
-                "total_approved": sum_res.total_approved if sum_res else Decimal("0.00"),
+                "total_collections": float(sum_res.total_collections) if sum_res else 0.0,
+                "total_entitled": float(sum_res.total_entitled) if sum_res else 0.0,
+                "total_claimed": float(sum_res.total_claimed) if sum_res else 0.0,
+                "total_approved": float(sum_res.total_approved) if sum_res else 0.0,
             }
         }
 
@@ -67,6 +123,31 @@ class DevolutionService:
         req: DevolutionClaimCreate,
         user_id: int,
     ) -> RevDevolutionClaim:
+        # Resolve local_body_id
+        lb_id = req.local_body_id
+        if not lb_id and req.local_body_code:
+            lb_res = await db.execute(select(RevLocalBody).where(RevLocalBody.local_body_code == req.local_body_code).limit(1))
+            lb = lb_res.scalar_one_or_none()
+            if lb:
+                lb_id = lb.local_body_id
+        if not lb_id:
+            lb_id = 1
+
+        # Resolve source_id
+        s_id = req.source_id
+        src_code = req.source_code or req.revenue_source
+        if not s_id and src_code:
+            s_res = await db.execute(select(RevRevenueSource).where(RevRevenueSource.source_code.ilike(f"%{src_code}%")).limit(1))
+            s = s_res.scalar_one_or_none()
+            if s:
+                s_id = s.source_id
+        if not s_id:
+            s_id = 4 # STAMP default
+
+        p_from = req.period_from or req.claim_period_from or date(2026, 9, 1)
+        p_to = req.period_to or req.claim_period_to or date(2026, 9, 10)
+        c_amt = req.claimed_amount or req.claim_amount or Decimal("0.00")
+
         # Find matching devolution rule
         rule = None
         if req.dev_rule_id:
@@ -74,8 +155,8 @@ class DevolutionService:
         else:
             rule_query = select(RevDevolutionRule).where(
                 and_(
-                    RevDevolutionRule.local_body_id == req.local_body_id,
-                    RevDevolutionRule.source_id == req.source_id,
+                    RevDevolutionRule.local_body_id == lb_id,
+                    RevDevolutionRule.source_id == s_id,
                     RevDevolutionRule.is_active == True,
                 )
             ).order_by(desc(RevDevolutionRule.dev_rule_id)).limit(1)
@@ -88,8 +169,8 @@ class DevolutionService:
         recon_query = select(RevReconResult).where(
             and_(
                 RevReconResult.status.ilike("%Match%"),
-                func.cast(RevReconResult.created_at, Date) >= req.period_from,
-                func.cast(RevReconResult.created_at, Date) <= req.period_to,
+                func.cast(RevReconResult.created_at, Date) >= p_from,
+                func.cast(RevReconResult.created_at, Date) <= p_to,
             )
         )
         recon_res = await db.execute(recon_query)
@@ -103,7 +184,7 @@ class DevolutionService:
             total_eligible = sum(((r.portal_total or r.bank_total) for r in recon_items), Decimal("0.00"))
 
         computed_entitlement = (total_eligible * share_pct / Decimal("100.00")).quantize(Decimal("0.01"))
-        variance = (req.claimed_amount or Decimal("0.00")) - computed_entitlement
+        variance = c_amt - computed_entitlement
 
         # Generate claim no
         seq_res = await db.execute(
@@ -114,16 +195,16 @@ class DevolutionService:
 
         claim = RevDevolutionClaim(
             claim_no=claim_no,
-            local_body_id=req.local_body_id,
-            source_id=req.source_id,
+            local_body_id=lb_id,
+            source_id=s_id,
             receipt_head_id=req.receipt_head_id or 1,
             dev_rule_id=rule.dev_rule_id if rule else None,
-            period_from=req.period_from,
-            period_to=req.period_to,
+            period_from=p_from,
+            period_to=p_to,
             eligible_collections=total_eligible,
             share_pct=share_pct,
             computed_entitlement=computed_entitlement,
-            claimed_amount=req.claimed_amount or computed_entitlement,
+            claimed_amount=c_amt,
             variance_amount=variance,
             approved_amount=Decimal("0.00"),
             status="Claim Received",
@@ -145,7 +226,6 @@ class DevolutionService:
                 entitled_share=item_entitlement,
             )
             db.add(comp)
-
 
         await db.commit()
         await db.refresh(claim)
