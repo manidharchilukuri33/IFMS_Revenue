@@ -89,7 +89,7 @@ class DDO(Base):
     ddo_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     organization_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("ifms_budget.organization.organization_id"), nullable=False)
     department_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("ifms_budget.department.department_id"), nullable=False)
-    demand_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.demand.demand_id"))
+    demand_id: Mapped[Optional[int]] = mapped_column(BigInteger)
     branch_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("ifms_budget.branch.branch_id"), nullable=False)
     ddo_code: Mapped[str] = mapped_column(String(50), nullable=False)
     ddo_name: Mapped[str] = mapped_column(String(200), nullable=False)

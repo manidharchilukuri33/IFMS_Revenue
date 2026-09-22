@@ -23,12 +23,12 @@ class AccountVoucher(Base):
     credit_coa_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("ifms_budget.chart_of_account.coa_id"), nullable=False)
 
     # Expenditure & Departmental Linkages
-    demand_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.demand.demand_id"))
+    demand_id: Mapped[Optional[int]] = mapped_column(BigInteger)
     department_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.department.department_id"))
     ddo_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.ddo.ddo_id"))
     office_id: Mapped[Optional[int]] = mapped_column(BigInteger)
-    scheme_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.scheme.scheme_id"))
-    project_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.project.project_id"))
+    scheme_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    project_id: Mapped[Optional[int]] = mapped_column(BigInteger)
 
     # Reconciliation & Bill Details
     recon_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.rev_recon_result.recon_id"))

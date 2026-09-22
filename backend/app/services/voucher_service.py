@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, and_, or_, text
-from app.models import AccountVoucher, RevSuspenseRegister, RevReconResult, ChartOfAccount, Department
+from app.models import AccountVoucher, RevSuspenseRegister, RevReconResult, ChartOfAccount, Department, RevSystemConfig
 from app.schemas.accounting import (
     BulkVoucherCreateRequest,
     BulkVoucherApproveRequest,
@@ -253,6 +253,12 @@ class VoucherService:
         dr_head_id = susp_head_id
         cr_head_id = getattr(recon, 'receipt_head_id', 1) or 1
 
+        # Resolve department_id
+        dept_id = None
+        if recon.dept_code:
+            dept_res = await db.execute(select(Department.department_id).where(Department.department_code.ilike(f"%{recon.dept_code}%")).limit(1))
+            dept_id = dept_res.scalar_one_or_none()
+
         seq_res = await db.execute(
             text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
             {"seq_key": "VOUCHER_SEQ", "prefix": "VCH", "fy": "2026-27"}
@@ -271,7 +277,10 @@ class VoucherService:
             amount=amt,
             debit_coa_id=dr_head_id,
             credit_coa_id=cr_head_id,
+            department_id=dept_id or 1,
             recon_id=recon.recon_id,
+            bill_no=recon.challan_no,
+            bill_date=date.today(),
             payee_name=recon.payer_name,
             narration=narr,
             status="Draft",
@@ -282,7 +291,7 @@ class VoucherService:
             created_by=user_id,
         )
         db.add(vch)
-        recon.booking_status = "DRAFT_VOUCHER_CREATED"
+        recon.booking_status = "DRAFT_VOUCHER"
         await db.commit()
         await db.refresh(vch)
         return vch
@@ -329,6 +338,11 @@ class VoucherService:
         voucher.checker_user_id = checker_id
         voucher.checker_remarks = remarks
         voucher.approved_at = datetime.now()
+
+        if voucher.recon_id:
+            recon = await db.get(RevReconResult, voucher.recon_id)
+            if recon:
+                recon.booking_status = "BOOKED"
 
         await db.commit()
         await db.refresh(voucher)

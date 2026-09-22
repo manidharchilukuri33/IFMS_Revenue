@@ -73,7 +73,7 @@ export const AccountingPage: React.FC = () => {
         if (item.status === 'Matched') {
           if (item.booking === 'Booked' || item.booking === 'BOOKED') {
             booked.push(item);
-          } else if (item.booking === 'DRAFT_VOUCHER_CREATED' || item.booking === 'Draft') {
+          } else if (item.booking === 'DRAFT_VOUCHER' || item.booking === 'DRAFT_VOUCHER_CREATED' || item.booking === 'Draft') {
             // Already drafted, awaiting PAO Checker approval
           } else {
             ready.push(item);
