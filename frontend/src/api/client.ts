@@ -298,6 +298,26 @@ class ApiClient {
     });
   }
 
+  async traceReconResult(reconId: number) {
+    return this.request<any>(`/recon/results/${reconId}/trace`, {
+      method: 'POST',
+    });
+  }
+
+  async solveReconDiscrepancy(reconId: number, payload: {
+    resolution_type: string;
+    target_status?: string;
+    remarks: string;
+    reference_no?: string;
+    suspense_head_code?: string;
+    adjust_amount?: number;
+  }) {
+    return this.request<any>(`/recon/results/${reconId}/solve`, {
+      method: 'POST',
+      body: JSON.stringify({ recon_id: reconId, ...payload }),
+    });
+  }
+
   // 6. Exception Management
   async getExceptions(params?: any) {
     const qp = new URLSearchParams();

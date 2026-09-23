@@ -129,3 +129,12 @@ class OverrideDecisionRequest(BaseModel):
 class AddNoteRequest(BaseModel):
     note_text: str
     action_type: str = "MANUAL_REMARK"
+
+class ReconSolveRequest(BaseModel):
+    recon_id: Optional[int] = None
+    resolution_type: str = "MANUAL_MATCH" # 'MANUAL_MATCH', 'POST_TO_SUSPENSE', 'MARK_RESOLVED', 'SPLIT_MATCH', 'DISCREPANCY_NOTICE'
+    target_status: str = "Matched" # 'Matched', 'Resolved', 'Suspend', 'RAT'
+    remarks: str
+    reference_no: Optional[str] = None
+    suspense_head_code: Optional[str] = None
+    adjust_amount: Optional[Decimal] = None

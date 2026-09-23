@@ -12,6 +12,7 @@ from app.models.exceptions import RevException, RevExceptionNote
 from app.models.sla import RevPenalClaim
 from app.models.accounting import RevSuspenseRegister
 from app.models.masters import RevSystemConfig, RevSlaRule, RevAgencyBank
+from app.models.common import AuditChangeLog, SystemNotification, ChartOfAccount
 from app.core.exceptions import NotFoundException, BusinessException, InvalidStateTransitionException
 
 class ReconEngineService:
@@ -750,6 +751,212 @@ class ReconEngineService:
         await self.db.refresh(recon)
         return recon
 
+    async def trace_result(self, recon_id: int, user_id: int) -> Dict[str, Any]:
+        recon = await self.db.get(RevReconResult, recon_id)
+        if not recon:
+            raise NotFoundException("Recon Result", recon_id)
+        
+        detail = await self.get_result_detail(recon_id)
+
+        # Log audit entry in AuditChangeLog
+        audit_entry = AuditChangeLog(
+            schema_name="ifms_budget",
+            table_name="rev_recon_result",
+            operation="U",
+            row_pk=str(recon_id),
+            new_data={
+                "action": "TRANSACTION_TRACED",
+                "traced_by": user_id,
+                "status": recon.status,
+                "challan_no": recon.challan_no,
+                "rev_transaction_id": recon.rev_transaction_id,
+                "timestamp": datetime.now().isoformat()
+            },
+            changed_by=user_id,
+            changed_at=datetime.now(),
+        )
+        self.db.add(audit_entry)
+        await self.db.commit()
+
+        return {
+            "recon_id": recon.recon_id,
+            "rev_transaction_id": recon.rev_transaction_id,
+            "status": recon.status,
+            "challan_no": recon.challan_no,
+            "cin": recon.cin,
+            "cpin": recon.cpin,
+            "payer_name": recon.payer_name,
+            "dept_code": recon.dept_code,
+            "pao_code": recon.pao_code,
+            "revenue_source": recon.revenue_source,
+            "receipt_head": recon.receipt_head,
+            "portal_total": float(recon.portal_total),
+            "bank_total": float(recon.bank_total),
+            "rbi_total": float(recon.rbi_total),
+            "amount_difference": float(recon.amount_difference),
+            "sla_delay_days": recon.sla_delay_days,
+            "penal_interest_amount": float(recon.penal_interest_amount),
+            "match_type": recon.match_type,
+            "rule_applied": recon.rule_applied,
+            "match_reason": recon.match_reason,
+            "booking_status": recon.booking_status,
+            "is_manual_override": recon.is_manual_override,
+            "linkages": detail.get("linkages", []),
+            "portal_legs": [detail["portal_details"]] if detail.get("portal_details") else [],
+            "bank_legs": detail.get("bank_details", []) or [],
+            "rbi_legs": detail.get("rbi_details", []) or [],
+            "overrides": detail.get("overrides", []) or [],
+            "notes": detail.get("notes", []) or [],
+            "traced_at": datetime.now().isoformat(),
+            "traced_by": user_id
+        }
+
+    async def solve_discrepancy(
+        self,
+        recon_id: int,
+        resolution_type: str,
+        target_status: str,
+        remarks: str,
+        reference_no: Optional[str],
+        user_id: int,
+        suspense_head_code: Optional[str] = None,
+        adjust_amount: Optional[Decimal] = None
+    ) -> Dict[str, Any]:
+        recon = await self.db.get(RevReconResult, recon_id)
+        if not recon:
+            raise NotFoundException("Recon Result", recon_id)
+
+        old_status = recon.status
+        old_booking = recon.booking_status
+        applied_target_status = target_status or ("Matched" if resolution_type == "MANUAL_MATCH" else "Resolved")
+
+        # 1. Update RevReconResult
+        recon.status = applied_target_status
+        recon.is_manual_override = True
+        recon.match_reason = f"Solved ({resolution_type}): {remarks}" + (f" [Ref: {reference_no}]" if reference_no else "")
+        if applied_target_status == "Matched":
+            recon.booking_status = "READY_FOR_BOOKING"
+        elif applied_target_status in ("Suspend", "RAT"):
+            recon.booking_status = "UNBOOKED"
+        
+        recon.updated_by = user_id
+        recon.updated_at = datetime.now()
+
+        # 2. Record in RevReconOverride
+        override = RevReconOverride(
+            recon_id=recon_id,
+            original_machine_status=old_status,
+            proposed_status=applied_target_status,
+            proposer_justification=remarks,
+            proposed_by=user_id,
+            proposed_at=datetime.now(),
+            decision_status="APPROVED",
+            checker_user_id=user_id,
+            checker_remarks=f"Direct resolution ({resolution_type})" + (f" Ref: {reference_no}" if reference_no else ""),
+            decided_at=datetime.now(),
+            organization_id=1,
+            org_branch_id=1,
+            created_by=user_id,
+            updated_by=user_id,
+            workflow_status="APPROVED"
+        )
+        self.db.add(override)
+
+        # 3. If resolution involves Suspense, create RevSuspenseRegister entry
+        if resolution_type == "POST_TO_SUSPENSE" or applied_target_status == "Suspend":
+            susp_coa = None
+            if suspense_head_code:
+                c_res = await self.db.execute(select(ChartOfAccount).where(ChartOfAccount.coa_code == suspense_head_code))
+                susp_coa = c_res.scalar_one_or_none()
+            if not susp_coa:
+                c_res = await self.db.execute(select(ChartOfAccount).where(ChartOfAccount.coa_code.like("8658%")).limit(1))
+                susp_coa = c_res.scalar_one_or_none()
+            
+            susp_head_id = susp_coa.coa_id if susp_coa else 1
+            susp_amount = adjust_amount or (recon.amount_difference if recon.amount_difference != 0 else recon.portal_total)
+            if susp_amount <= 0:
+                susp_amount = recon.portal_total or recon.rbi_total or Decimal("100.00")
+
+            susp_entry = RevSuspenseRegister(
+                recon_id=recon_id,
+                suspense_type="UNRECONCILED_SUSPENSE" if old_status == "Suspend" else "AMOUNT_MISMATCH_SUSPENSE",
+                suspense_head_id=susp_head_id,
+                amount=susp_amount,
+                ageing_days=recon.date_variance_days or 0,
+                status="OPEN"
+            )
+            self.db.add(susp_entry)
+
+        # 4. If linked exception exists, close it
+        exc_q = select(RevException).where(RevException.recon_id == recon_id, RevException.status != "Closed")
+        exc_res = await self.db.execute(exc_q)
+        active_exceptions = list(exc_res.scalars().all())
+        for exc in active_exceptions:
+            exc.status = "Resolved"
+            exc.resolution_reason = resolution_type[:150]
+            exc.resolution_remarks = f"Discrepancy resolved via {resolution_type}: {remarks}"
+            exc.resolved_at = datetime.now()
+            exc.resolved_by = user_id
+            exc.updated_by = user_id
+            
+            note = RevExceptionNote(
+                exception_id=exc.exception_id,
+                created_by=user_id,
+                note_text=f"Solved ({resolution_type}): {remarks}" + (f" [Ref: {reference_no}]" if reference_no else ""),
+                action_type="RESOLVED"
+            )
+            self.db.add(note)
+
+        # 5. Record AuditChangeLog
+        audit_log = AuditChangeLog(
+            schema_name="ifms_budget",
+            table_name="rev_recon_result",
+            operation="U",
+            row_pk=str(recon_id),
+            old_data={"status": old_status, "booking_status": old_booking},
+            new_data={
+                "status": applied_target_status,
+                "booking_status": recon.booking_status,
+                "resolution_type": resolution_type,
+                "remarks": remarks,
+                "reference_no": reference_no,
+                "resolved_by": user_id
+            },
+            changed_by=user_id,
+            changed_at=datetime.now()
+        )
+        self.db.add(audit_log)
+
+        # 6. Push SystemNotification
+        notif = SystemNotification(
+            notification_code=f"NOTIF-SOLVE-{recon_id}-{datetime.now().strftime('%H%M%S')}",
+            title=f"Discrepancy Solved: Challan {recon.challan_no or recon.rev_transaction_id}",
+            text=f"Record {recon.rev_transaction_id} updated from {old_status} to {applied_target_status} via {resolution_type}. Remarks: {remarks}",
+            level="ok",
+            target_role="PAO_CHECK",
+            action_module="Recon",
+            reference_id=str(recon_id),
+            is_read=False,
+            created_at=datetime.now(),
+            created_by=user_id,
+            updated_by=user_id,
+            workflow_status="ACTIVE"
+        )
+        self.db.add(notif)
+
+        await self.db.commit()
+        await self.db.refresh(recon)
+
+        return {
+            "message": f"Discrepancy successfully resolved as {applied_target_status}.",
+            "recon_id": recon.recon_id,
+            "status": recon.status,
+            "booking_status": recon.booking_status,
+            "match_reason": recon.match_reason,
+            "is_manual_override": recon.is_manual_override,
+            "resolved_at": datetime.now().isoformat()
+        }
+
     async def get_summary(self) -> Dict[str, Any]:
         # 1. Total Staged Portal records
         p_q = select(func.count(RevPortalTransactionStaging.portal_item_id), func.coalesce(func.sum(RevPortalTransactionStaging.amount), Decimal("0.00")))
@@ -918,4 +1125,26 @@ class ReconEngine:
         svc = ReconEngineService(db)
         decision = "APPROVED" if approved else "REJECTED"
         return await svc.decide_override(recon_id, decision, remarks, user_id)
+
+    @staticmethod
+    async def trace_recon_result(db: AsyncSession, recon_id: int, user_id: int) -> Dict[str, Any]:
+        svc = ReconEngineService(db)
+        return await svc.trace_result(recon_id, user_id)
+
+    @staticmethod
+    async def solve_recon_discrepancy(
+        db: AsyncSession,
+        recon_id: int,
+        resolution_type: str,
+        target_status: str,
+        remarks: str,
+        reference_no: Optional[str],
+        user_id: int,
+        suspense_head_code: Optional[str] = None,
+        adjust_amount: Optional[Decimal] = None
+    ) -> Dict[str, Any]:
+        svc = ReconEngineService(db)
+        return await svc.solve_discrepancy(
+            recon_id, resolution_type, target_status, remarks, reference_no, user_id, suspense_head_code, adjust_amount
+        )
 

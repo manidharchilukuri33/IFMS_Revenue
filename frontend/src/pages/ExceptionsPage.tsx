@@ -136,6 +136,18 @@ export const ExceptionsPage: React.FC = () => {
   const [newAssignee, setNewAssignee] = useState('PAO21-OFFICER');
   const [commentText, setCommentText] = useState('');
 
+  // Trace & Solve Modals
+  const [traceModalExc, setTraceModalExc] = useState<ExceptionItem | null>(null);
+  const [traceData, setTraceData] = useState<any | null>(null);
+  const [traceLoading, setTraceLoading] = useState(false);
+  const [solveModalExc, setSolveModalExc] = useState<ExceptionItem | null>(null);
+  const [solveType, setSolveType] = useState('MANUAL_MATCH');
+  const [solveTargetStatus, setSolveTargetStatus] = useState('Matched');
+  const [solveRemarks, setSolveRemarks] = useState('');
+  const [solveRefNo, setSolveRefNo] = useState('');
+  const [solveSuspenseHead, setSolveSuspenseHead] = useState('8658-00-102-01-00-01');
+  const [solveLoading, setSolveLoading] = useState(false);
+
   const canManage = ['SYSADMIN', 'TRE_ADMIN', 'PAO_MAKER', 'PAO_CHECK', 'DDO'].includes(userRole);
 
   const fetchData = async () => {
@@ -329,6 +341,60 @@ export const ExceptionsPage: React.FC = () => {
       setSelectedExc(prev => (prev ? { ...prev, status: 'Closed' } : null));
     }
     showToast('Exception closed successfully.', 'success');
+  };
+
+  const handleOpenTrace = async (e: ExceptionItem) => {
+    setTraceModalExc(e);
+    setTraceLoading(true);
+    try {
+      const reconId = e.reconId || e.id;
+      const data = await api.traceReconResult(reconId);
+      setTraceData(data);
+    } catch (err: any) {
+      showToast(err.message || 'Trace inspection failed', 'error');
+      setTraceData(null);
+    } finally {
+      setTraceLoading(false);
+    }
+  };
+
+  const handleOpenSolve = (e: ExceptionItem) => {
+    setSolveModalExc(e);
+    setSolveType('MANUAL_MATCH');
+    setSolveTargetStatus('Matched');
+    setSolveRemarks(`Resolved exception ${e.excCode} (${e.category}) for challan ${e.challan}`);
+    setSolveRefNo(`EXC-RES-${new Date().getFullYear()}-${String(e.id).padStart(4, '0')}`);
+    setSolveSuspenseHead('8658-00-102-01-00-01');
+  };
+
+  const handleConfirmSolve = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!solveModalExc) return;
+    try {
+      setSolveLoading(true);
+      const reconId = solveModalExc.reconId || solveModalExc.id;
+      await api.solveReconDiscrepancy(reconId, {
+        resolution_type: solveType,
+        target_status: solveTargetStatus,
+        remarks: solveRemarks,
+        reference_no: solveRefNo,
+        suspense_head_code: solveType === 'POST_TO_SUSPENSE' ? solveSuspenseHead : undefined,
+      });
+      showToast(`Exception and discrepancy solved successfully! Updated in PostgreSQL database.`, 'success');
+      setSolveModalExc(null);
+      if (traceModalExc && traceModalExc.id === solveModalExc.id) {
+        setTraceModalExc(null);
+      }
+      if (selectedExc && selectedExc.id === solveModalExc.id) {
+        setSelectedExc(null);
+      }
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to solve exception', 'error');
+    } finally {
+      setSolveLoading(false);
+    }
   };
 
   const handleExport = () => {
@@ -785,8 +851,28 @@ export const ExceptionsPage: React.FC = () => {
                         <button className="btn btn-xs" onClick={() => setSelectedExc(e)}>
                           Open
                         </button>{' '}
+                        {e.status !== 'Closed' && (
+                          <div className="inline-flex gap4 ml4">
+                            <button
+                              className="btn btn-xs btn-outline"
+                              style={{ borderColor: 'var(--navy-600, #1b4a83)', color: 'var(--navy-800, #0f2d52)', fontWeight: 600, padding: '2px 8px' }}
+                              title="Trace complete 3-way transaction path and audit log"
+                              onClick={() => handleOpenTrace(e)}
+                            >
+                              🔍 Trace
+                            </button>
+                            <button
+                              className="btn btn-xs btn-ok"
+                              style={{ fontWeight: 600, padding: '2px 8px' }}
+                              title="Solve discrepancy and persist resolution in database"
+                              onClick={() => handleOpenSolve(e)}
+                            >
+                              ⚡ Solve
+                            </button>
+                          </div>
+                        )}
                         {canManage && e.status !== 'Closed' && (
-                          <button className="btn btn-xs btn-p" onClick={() => setLetterModal(e)}>
+                          <button className="btn btn-xs btn-p ml4" onClick={() => setLetterModal(e)}>
                             Letter
                           </button>
                         )}
@@ -1061,6 +1147,328 @@ export const ExceptionsPage: React.FC = () => {
                 Confirm Assignment
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exception 3-Way Trace Modal */}
+      {traceModalExc && (
+        <div className="ovl">
+          <div className="modal" style={{ maxWidth: '980px', width: '95%' }}>
+            <div className="modal-h">
+              <div>
+                <h3>🔍 3-Way Transaction Trace: {traceModalExc.excCode}</h3>
+                <div className="sub">
+                  Challan: <strong className="mono">{traceModalExc.challan}</strong> &middot; Category: <strong>{traceModalExc.category}</strong> &middot; Payer: <strong>{traceModalExc.payer}</strong>
+                </div>
+              </div>
+              <button className="close" onClick={() => setTraceModalExc(null)}>
+                &times;
+              </button>
+            </div>
+
+            <div className="modal-b">
+              {traceLoading ? (
+                <div className="center py-12 muted">
+                  <div className="spinner mb8"></div>
+                  <div>Inspecting 3-way transaction linkages across Portal, Agency Bank, and RBI databases...</div>
+                </div>
+              ) : (
+                <div>
+                  {/* KPI Summary Matrix */}
+                  <div className="grid g4 mb16">
+                    <div className="kpi">
+                      <div className="lab">Exception Amount</div>
+                      <div className="val">{money(traceModalExc.amount)}</div>
+                      <div className="sec">Raised: {fmtDateDash(traceModalExc.raisedOn)}</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="lab">Portal / Source Total</div>
+                      <div className="val">{money(traceData?.portal_total ?? traceModalExc.grossAmount ?? traceModalExc.amount)}</div>
+                      <div className="sec">Source: {traceModalExc.source}</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="lab">Agency Bank / RBI Total</div>
+                      <div className="val">{money(traceData?.rbi_total ?? traceData?.bank_total ?? traceModalExc.amount)}</div>
+                      <div className="sec">Due: {fmtDateDash(traceModalExc.due)}</div>
+                    </div>
+                    <div className="kpi warn">
+                      <div className="lab">Ageing &amp; Severity</div>
+                      <div className="val">{traceModalExc.ageing} day(s)</div>
+                      <div className="sec"><span className={badgeClass(traceModalExc.severity)}>{traceModalExc.severity}</span></div>
+                    </div>
+                  </div>
+
+                  {/* 3-Way Lane Comparison */}
+                  <h4 className="mb8" style={{ color: 'var(--navy-900)' }}>Three-Way Discrepancy Legs Breakdown</h4>
+                  <div className="grid g3 mb16 gap12">
+                    {/* Lane 1: Portal */}
+                    <div className="box info" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                      <div className="strong mb8 flex items-center gap6" style={{ color: 'var(--navy-900)' }}>
+                        <span>🏛️ Leg 1: Department Portal</span>
+                      </div>
+                      <dl className="kv" style={{ gridTemplateColumns: '110px 1fr', fontSize: '12px' }}>
+                        <dt>Source</dt>
+                        <dd><strong>{traceModalExc.source}</strong> ({traceModalExc.dept})</dd>
+                        <dt>PAO Office</dt>
+                        <dd>{traceModalExc.pao}</dd>
+                        <dt>Challan No</dt>
+                        <dd className="mono strong">{traceModalExc.challan}</dd>
+                        <dt>Payer</dt>
+                        <dd>{traceModalExc.payer}</dd>
+                        <dt>Staged Amount</dt>
+                        <dd><strong className="mono" style={{ color: 'var(--navy-800)' }}>{money(traceData?.portal_total ?? traceModalExc.grossAmount ?? traceModalExc.amount)}</strong></dd>
+                      </dl>
+                    </div>
+
+                    {/* Lane 2: Bank */}
+                    <div className="box info" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                      <div className="strong mb8 flex items-center gap6" style={{ color: 'var(--navy-900)' }}>
+                        <span>🏦 Leg 2: Agency Bank Scroll</span>
+                      </div>
+                      <dl className="kv" style={{ gridTemplateColumns: '110px 1fr', fontSize: '12px' }}>
+                        <dt>Bank Branch</dt>
+                        <dd><strong>{traceModalExc.bank || 'State Bank of India'}</strong></dd>
+                        <dt>Scroll Ref</dt>
+                        <dd className="mono strong">{traceData?.bank_legs?.[0]?.scroll_no || `SCR-${traceModalExc.challan}`}</dd>
+                        <dt>Bank Amount</dt>
+                        <dd><strong className="mono" style={{ color: 'var(--navy-800)' }}>{money(traceData?.bank_total ?? traceModalExc.amount)}</strong></dd>
+                        <dt>Assigned To</dt>
+                        <dd>{traceModalExc.assigned}</dd>
+                      </dl>
+                    </div>
+
+                    {/* Lane 3: RBI */}
+                    <div className="box info" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                      <div className="strong mb8 flex items-center gap6" style={{ color: 'var(--navy-900)' }}>
+                        <span>⚖️ Leg 3: RBI CAS Credit</span>
+                      </div>
+                      <dl className="kv" style={{ gridTemplateColumns: '110px 1fr', fontSize: '12px' }}>
+                        <dt>Settlement Hub</dt>
+                        <dd><strong>CAS Nagpur</strong></dd>
+                        <dt>RBI Credit Total</dt>
+                        <dd><strong className="mono" style={{ color: 'var(--navy-800)' }}>{money(traceData?.rbi_total ?? traceModalExc.amount)}</strong></dd>
+                        <dt>Exception Status</dt>
+                        <dd><span className={badgeClass(traceModalExc.status)}>{traceModalExc.status}</span></dd>
+                      </dl>
+                    </div>
+                  </div>
+
+                  {/* Exception Description */}
+                  <div className="box info mb12" style={{ fontSize: '12.5px' }}>
+                    <div className="strong mb4">Exception Details &amp; Root Cause:</div>
+                    <div className="mb8">{traceModalExc.detail}</div>
+                    <div className="tiny muted flex items-center justify-between border-t pt-2" style={{ borderColor: '#e2e8f0' }}>
+                      <span>🔒 Traced by user <strong>{userRole}</strong> &middot; Exception Code: <code>{traceModalExc.excCode}</code></span>
+                      <span>Recorded in PostgreSQL <code>ifms_budget.audit_change_log</code></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-f flex justify-between items-center">
+              <button className="btn btn-sm" onClick={() => setTraceModalExc(null)}>
+                Close
+              </button>
+              <button
+                className="btn btn-ok btn-sm"
+                onClick={() => {
+                  const exc = traceModalExc;
+                  setTraceModalExc(null);
+                  handleOpenSolve(exc);
+                }}
+              >
+                ⚡ Proceed to Solve Discrepancy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exception Solve Resolution Modal */}
+      {solveModalExc && (
+        <div className="ovl">
+          <div className="modal" style={{ maxWidth: '780px', width: '90%' }}>
+            <div className="modal-h">
+              <div>
+                <h3>⚡ Solve Exception Discrepancy: {solveModalExc.excCode}</h3>
+                <div className="sub">
+                  Challan: <strong className="mono">{solveModalExc.challan}</strong> &middot; Category: <strong>{solveModalExc.category}</strong> &middot; Amount: <strong style={{ color: 'var(--red-700)' }}>{money(solveModalExc.amount)}</strong>
+                </div>
+              </div>
+              <button className="close" onClick={() => setSolveModalExc(null)}>
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmSolve}>
+              <div className="modal-b">
+                {/* Strategy Selection */}
+                <div className="mb16">
+                  <label className="strong block mb8" style={{ color: 'var(--navy-900)' }}>
+                    Select Resolution Strategy <span className="req">*</span>
+                  </label>
+                  <div className="grid g2 gap10">
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'MANUAL_MATCH' ? '#f0fdf4' : '#ffffff',
+                        borderColor: solveType === 'MANUAL_MATCH' ? 'var(--teal-600)' : '#cbd5e1',
+                        borderWidth: solveType === 'MANUAL_MATCH' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('MANUAL_MATCH');
+                        setSolveTargetStatus('Matched');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveTypeExc"
+                          checked={solveType === 'MANUAL_MATCH'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--teal-700)' }}>🟢 Manual Match Override &amp; Close</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Authorize match based on verified supporting documentation and release receipt for general ledger booking.
+                      </div>
+                    </div>
+
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'POST_TO_SUSPENSE' ? '#fffbeb' : '#ffffff',
+                        borderColor: solveType === 'POST_TO_SUSPENSE' ? 'var(--amber-600)' : '#cbd5e1',
+                        borderWidth: solveType === 'POST_TO_SUSPENSE' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('POST_TO_SUSPENSE');
+                        setSolveTargetStatus('Suspend');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveTypeExc"
+                          checked={solveType === 'POST_TO_SUSPENSE'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--amber-700)' }}>🟡 Transfer to Suspense Register</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Move difference amount into Treasury (8658-102) or RAT (8658-101) suspense account pending bank scroll clarification.
+                      </div>
+                    </div>
+
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'MARK_RESOLVED' ? '#eff6ff' : '#ffffff',
+                        borderColor: solveType === 'MARK_RESOLVED' ? 'var(--navy-500)' : '#cbd5e1',
+                        borderWidth: solveType === 'MARK_RESOLVED' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('MARK_RESOLVED');
+                        setSolveTargetStatus('Resolved');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveTypeExc"
+                          checked={solveType === 'MARK_RESOLVED'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--navy-700)' }}>🔵 Mark as Resolved / Rectified</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Close exception case after verifying that departmental adjustment or timing correction was performed.
+                      </div>
+                    </div>
+
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'DISCREPANCY_NOTICE' ? '#fef2f2' : '#ffffff',
+                        borderColor: solveType === 'DISCREPANCY_NOTICE' ? 'var(--red-600)' : '#cbd5e1',
+                        borderWidth: solveType === 'DISCREPANCY_NOTICE' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('DISCREPANCY_NOTICE');
+                        setSolveTargetStatus('Under Investigation');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveTypeExc"
+                          checked={solveType === 'DISCREPANCY_NOTICE'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--red-700)' }}>🔴 Escalate for Bank Recovery</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Issue formal discrepancy notice to Agency Bank branch for recovery / clawback of short credit.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Conditional Suspense Head */}
+                {solveType === 'POST_TO_SUSPENSE' && (
+                  <div className="fld mb12">
+                    <label>Suspense Head <span className="req">*</span></label>
+                    <select
+                      className="inp"
+                      value={solveSuspenseHead}
+                      onChange={e => setSolveSuspenseHead(e.target.value)}
+                    >
+                      <option value="8658-00-102-01-00-01">8658-00-102-01-00-01 &mdash; Treasury Suspense Clearing Account</option>
+                      <option value="8658-00-101-01-00-01">8658-00-101-01-00-01 &mdash; Remittance in Transit (RAT) Suspense Account</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Authority Reference */}
+                <div className="fld mb12">
+                  <label>Authority Order / Reference No</label>
+                  <input
+                    className="inp"
+                    value={solveRefNo}
+                    onChange={e => setSolveRefNo(e.target.value)}
+                    placeholder="e.g. TREASURY/EXC/2026/09/44"
+                  />
+                </div>
+
+                {/* Justification / Remarks */}
+                <div className="fld mb12">
+                  <label>Resolution Remarks &amp; Action Notes <span className="req">*</span></label>
+                  <textarea
+                    className="inp"
+                    rows={3}
+                    value={solveRemarks}
+                    onChange={e => setSolveRemarks(e.target.value)}
+                    placeholder="Provide the explanation, audit references, and justification for closing this exception..."
+                    required
+                  />
+                </div>
+
+                <div className="box info small">
+                  <strong>Database Synchronization:</strong> This action updates <code>ifms_budget.rev_exception</code>, resolves the linked <code>rev_recon_result</code>, inserts into <code>rev_exception_note</code>, logs CDC in <code>audit_change_log</code>, and notifies the PAO Checker.
+                </div>
+              </div>
+
+              <div className="modal-f flex justify-between items-center">
+                <button type="button" className="btn btn-sm" onClick={() => setSolveModalExc(null)} disabled={solveLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-ok btn-sm" disabled={solveLoading}>
+                  {solveLoading ? 'Saving to Database...' : '⚡ Confirm & Persist Solution to Database'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

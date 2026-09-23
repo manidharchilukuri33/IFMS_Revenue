@@ -70,6 +70,18 @@ export const ReconPage: React.FC = () => {
   const [overrideReason, setOverrideReason] = useState('');
   const [dbSummary, setDbSummary] = useState<any>(null);
 
+  // Trace & Solve Modals
+  const [traceModalRow, setTraceModalRow] = useState<ReconRow | null>(null);
+  const [traceData, setTraceData] = useState<any | null>(null);
+  const [traceLoading, setTraceLoading] = useState(false);
+  const [solveModalRow, setSolveModalRow] = useState<ReconRow | null>(null);
+  const [solveType, setSolveType] = useState('MANUAL_MATCH');
+  const [solveTargetStatus, setSolveTargetStatus] = useState('Matched');
+  const [solveRemarks, setSolveRemarks] = useState('');
+  const [solveRefNo, setSolveRefNo] = useState('');
+  const [solveSuspenseHead, setSolveSuspenseHead] = useState('8658-00-102-01-00-01');
+  const [solveLoading, setSolveLoading] = useState(false);
+
   const canRun = ['SYSADMIN', 'TRE_ADMIN', 'PAO_MAKER'].includes(userRole);
   const canReset = ['SYSADMIN', 'TRE_ADMIN'].includes(userRole);
   const canOverride = ['PAO_MAKER', 'TRE_ADMIN', 'SYSADMIN'].includes(userRole);
@@ -336,6 +348,58 @@ export const ReconPage: React.FC = () => {
       showToast(err.message || 'Decision failed', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenTrace = async (r: ReconRow) => {
+    setTraceModalRow(r);
+    setTraceLoading(true);
+    try {
+      const data = await api.traceReconResult(r.id);
+      setTraceData(data);
+    } catch (err: any) {
+      showToast(err.message || 'Trace inspection failed', 'error');
+      setTraceData(null);
+    } finally {
+      setTraceLoading(false);
+    }
+  };
+
+  const handleOpenSolve = (r: ReconRow) => {
+    setSolveModalRow(r);
+    setSolveType('MANUAL_MATCH');
+    setSolveTargetStatus('Matched');
+    setSolveRemarks(`Manual match & resolution verified for challan ${r.challan} (${r.payer})`);
+    setSolveRefNo(`RES-${new Date().getFullYear()}-${String(r.id).padStart(5, '0')}`);
+    setSolveSuspenseHead('8658-00-102-01-00-01');
+  };
+
+  const handleConfirmSolve = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!solveModalRow) return;
+    try {
+      setSolveLoading(true);
+      await api.solveReconDiscrepancy(solveModalRow.id, {
+        resolution_type: solveType,
+        target_status: solveTargetStatus,
+        remarks: solveRemarks,
+        reference_no: solveRefNo,
+        suspense_head_code: solveType === 'POST_TO_SUSPENSE' ? solveSuspenseHead : undefined,
+      });
+      showToast(`Discrepancy solved successfully! Status updated to ${solveTargetStatus} in PostgreSQL database.`, 'success');
+      setSolveModalRow(null);
+      if (traceModalRow && traceModalRow.id === solveModalRow.id) {
+        setTraceModalRow(null);
+      }
+      if (selectedRow && selectedRow.id === solveModalRow.id) {
+        setSelectedRow(null);
+      }
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to solve discrepancy', 'error');
+    } finally {
+      setSolveLoading(false);
     }
   };
 
@@ -671,15 +735,36 @@ export const ReconPage: React.FC = () => {
                       <div className="small">{r.reason}</div>
                     </td>
                     <td>
-                      <button
-                        className="btn btn-xs btn-p"
-                        onClick={() => {
-                          setSelectedRow(r);
-                          setReconTab('a');
-                        }}
-                      >
-                        Open
-                      </button>
+                      {r.status === 'Matched' ? (
+                        <button
+                          className="btn btn-xs"
+                          onClick={() => {
+                            setSelectedRow(r);
+                            setReconTab('a');
+                          }}
+                        >
+                          Open
+                        </button>
+                      ) : (
+                        <div className="flex gap4 nowrap">
+                          <button
+                            className="btn btn-xs btn-outline"
+                            style={{ borderColor: 'var(--navy-600, #1b4a83)', color: 'var(--navy-800, #0f2d52)', fontWeight: 600, padding: '2px 8px' }}
+                            title="Trace complete 3-way transaction path and audit log"
+                            onClick={() => handleOpenTrace(r)}
+                          >
+                            🔍 Trace
+                          </button>
+                          <button
+                            className="btn btn-xs btn-ok"
+                            style={{ fontWeight: 600, padding: '2px 8px' }}
+                            title="Solve discrepancy and persist resolution to database"
+                            onClick={() => handleOpenSolve(r)}
+                          >
+                            ⚡ Solve
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -1376,6 +1461,362 @@ export const ReconPage: React.FC = () => {
                 </button>
                 <button type="submit" className="btn btn-p btn-sm">
                   Submit for Checker Approval
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3-Way Trace Modal */}
+      {traceModalRow && (
+        <div className="ovl">
+          <div className="modal" style={{ maxWidth: '980px', width: '95%' }}>
+            <div className="modal-h">
+              <div>
+                <h3>🔍 3-Way Transaction Trace: {traceModalRow.reconCode}</h3>
+                <div className="sub">
+                  Challan: <strong className="mono">{traceModalRow.challan}</strong> &middot; Payer: <strong>{traceModalRow.payer}</strong> &middot; Current Status: <span className={badgeClass(traceModalRow.status)}>{traceModalRow.status}</span>
+                </div>
+              </div>
+              <button className="close" onClick={() => setTraceModalRow(null)}>
+                &times;
+              </button>
+            </div>
+
+            <div className="modal-b">
+              {traceLoading ? (
+                <div className="center py-12 muted">
+                  <div className="spinner mb8"></div>
+                  <div>Inspecting 3-way transaction linkages across Portal, Agency Bank, and RBI databases...</div>
+                </div>
+              ) : (
+                <div>
+                  {/* KPI Summary Matrix */}
+                  <div className="grid g4 mb16">
+                    <div className="kpi">
+                      <div className="lab">Portal Taxpayer Remittance</div>
+                      <div className="val">{money(traceModalRow.portalAmt)}</div>
+                      <div className="sec">{fmtDateDash(traceModalRow.portalDate)}</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="lab">Agency Bank Scroll</div>
+                      <div className="val">{money(traceModalRow.bankAmt)}</div>
+                      <div className="sec">{fmtDateDash(traceModalRow.bankDate)}</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="lab">RBI CAS Luggage Credit</div>
+                      <div className="val">{money(traceModalRow.rbiAmt)}</div>
+                      <div className="sec">{fmtDateDash(traceModalRow.rbiDate)}</div>
+                    </div>
+                    <div className={`kpi ${traceModalRow.diff !== 0 ? 'err' : 'ok'}`}>
+                      <div className="lab">Net Discrepancy / Variance</div>
+                      <div className="val">{money(traceModalRow.diff)}</div>
+                      <div className="sec">{traceModalRow.slaDelay > 0 ? `${traceModalRow.slaDelay}d delay (${money(traceModalRow.penal)} penal)` : 'Within SLA'}</div>
+                    </div>
+                  </div>
+
+                  {/* 3-Way Lane Comparison */}
+                  <h4 className="mb8" style={{ color: 'var(--navy-900)' }}>End-to-End Three-Way Reconciliation Legs</h4>
+                  <div className="grid g3 mb16 gap12">
+                    {/* Lane 1: Portal */}
+                    <div className="box info" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                      <div className="strong mb8 flex items-center gap6" style={{ color: 'var(--navy-900)' }}>
+                        <span>🏛️ Leg 1: Department Portal</span>
+                      </div>
+                      <dl className="kv" style={{ gridTemplateColumns: '110px 1fr', fontSize: '12px' }}>
+                        <dt>Source</dt>
+                        <dd><strong>{traceModalRow.source}</strong> ({traceModalRow.dept})</dd>
+                        <dt>PAO Office</dt>
+                        <dd>{traceModalRow.pao}</dd>
+                        <dt>Challan No</dt>
+                        <dd className="mono strong">{traceModalRow.challan}</dd>
+                        <dt>CPIN</dt>
+                        <dd className="mono">{traceModalRow.cin || `CPIN-${traceModalRow.challan.slice(-5)}`}</dd>
+                        <dt>Payer</dt>
+                        <dd>{traceModalRow.payer}</dd>
+                        <dt>Payment Date</dt>
+                        <dd>{fmtDateDash(traceModalRow.portalDate)}</dd>
+                        <dt>Staged Amount</dt>
+                        <dd><strong className="mono" style={{ color: 'var(--navy-800)' }}>{money(traceModalRow.portalAmt)}</strong></dd>
+                        <dt>Receipt Head</dt>
+                        <dd className="mono tiny">{traceModalRow.raw?.receipt_head || '0040-00-102-01-00-01'}</dd>
+                      </dl>
+                    </div>
+
+                    {/* Lane 2: Bank */}
+                    <div className="box info" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                      <div className="strong mb8 flex items-center gap6" style={{ color: 'var(--navy-900)' }}>
+                        <span>🏦 Leg 2: Agency Bank Scroll</span>
+                      </div>
+                      <dl className="kv" style={{ gridTemplateColumns: '110px 1fr', fontSize: '12px' }}>
+                        <dt>Bank Branch</dt>
+                        <dd><strong>State Bank of India</strong> (SBIN0001001)</dd>
+                        <dt>Scroll Ref</dt>
+                        <dd className="mono strong">{traceData?.bank_legs?.[0]?.scroll_no || `SCR-${traceModalRow.challan}`}</dd>
+                        <dt>CIN</dt>
+                        <dd className="mono">{traceModalRow.cin || 'CIN-SBIN-99210'}</dd>
+                        <dt>Bank Remittance</dt>
+                        <dd>{fmtDateDash(traceModalRow.bankDate)}</dd>
+                        <dt>Scroll Amount</dt>
+                        <dd><strong className="mono" style={{ color: 'var(--navy-800)' }}>{money(traceModalRow.bankAmt)}</strong></dd>
+                        <dt>SLA Turnaround</dt>
+                        <dd>
+                          {traceModalRow.slaDelay > 0 ? (
+                            <span className="badge b-amber">{traceModalRow.slaDelay} day(s) late</span>
+                          ) : (
+                            <span className="badge b-green">Within SLA (T+1)</span>
+                          )}
+                        </dd>
+                        <dt>Penal Computed</dt>
+                        <dd className="mono">{money(traceModalRow.penal)}</dd>
+                      </dl>
+                    </div>
+
+                    {/* Lane 3: RBI */}
+                    <div className="box info" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                      <div className="strong mb8 flex items-center gap6" style={{ color: 'var(--navy-900)' }}>
+                        <span>⚖️ Leg 3: RBI Luggage (CAS)</span>
+                      </div>
+                      <dl className="kv" style={{ gridTemplateColumns: '110px 1fr', fontSize: '12px' }}>
+                        <dt>Settlement Hub</dt>
+                        <dd><strong>CAS Nagpur</strong></dd>
+                        <dt>Luggage Advice</dt>
+                        <dd className="mono strong">{traceData?.rbi_legs?.[0]?.luggage_file_no || `LUG-${traceModalRow.challan}`}</dd>
+                        <dt>Settlement Date</dt>
+                        <dd>{fmtDateDash(traceModalRow.rbiDate)}</dd>
+                        <dt>RBI Credit Total</dt>
+                        <dd><strong className="mono" style={{ color: 'var(--navy-800)' }}>{money(traceModalRow.rbiAmt)}</strong></dd>
+                        <dt>Variance Status</dt>
+                        <dd>
+                          {traceModalRow.diff === 0 ? (
+                            <span className="badge b-green">Zero Variance</span>
+                          ) : (
+                            <span className="badge b-red">{money(traceModalRow.diff)} Diff</span>
+                          )}
+                        </dd>
+                        <dt>Ledger Booking</dt>
+                        <dd>
+                          <span className={`badge ${traceModalRow.status === 'Matched' ? 'b-green' : 'b-amber'}`}>
+                            {traceModalRow.raw?.booking_status || (traceModalRow.status === 'Matched' ? 'READY_FOR_BOOKING' : 'PROVISIONAL_HOLD')}
+                          </span>
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+
+                  {/* Diagnostic Matrix & Audit Footprint */}
+                  <div className="box info mb12" style={{ fontSize: '12.5px' }}>
+                    <div className="strong mb4">Reconciliation Match Reason &amp; Rule:</div>
+                    <div className="mb8">{traceModalRow.reason} (Applied Rule: <code>{traceModalRow.ruleCode}</code>)</div>
+                    <div className="tiny muted flex items-center justify-between border-t pt-2" style={{ borderColor: '#e2e8f0' }}>
+                      <span>🔒 Traced by user <strong>{userRole}</strong> &middot; Transaction ID: <code>{traceModalRow.revId}</code></span>
+                      <span>Recorded in PostgreSQL <code>ifms_budget.audit_change_log</code></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-f flex justify-between items-center">
+              <button className="btn btn-sm" onClick={() => setTraceModalRow(null)}>
+                Close
+              </button>
+              <button
+                className="btn btn-ok btn-sm"
+                onClick={() => {
+                  const row = traceModalRow;
+                  setTraceModalRow(null);
+                  handleOpenSolve(row);
+                }}
+              >
+                ⚡ Proceed to Solve Discrepancy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Solve Discrepancy Resolution Modal */}
+      {solveModalRow && (
+        <div className="ovl">
+          <div className="modal" style={{ maxWidth: '780px', width: '90%' }}>
+            <div className="modal-h">
+              <div>
+                <h3>⚡ Solve Discrepancy: {solveModalRow.reconCode}</h3>
+                <div className="sub">
+                  Challan: <strong className="mono">{solveModalRow.challan}</strong> &middot; Current Status: <span className={badgeClass(solveModalRow.status)}>{solveModalRow.status}</span> &middot; Variance: <strong style={{ color: 'var(--red-700)' }}>{money(solveModalRow.diff)}</strong>
+                </div>
+              </div>
+              <button className="close" onClick={() => setSolveModalRow(null)}>
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmSolve}>
+              <div className="modal-b">
+                {/* Strategy Selection */}
+                <div className="mb16">
+                  <label className="strong block mb8" style={{ color: 'var(--navy-900)' }}>
+                    Select Resolution Strategy <span className="req">*</span>
+                  </label>
+                  <div className="grid g2 gap10">
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'MANUAL_MATCH' ? '#f0fdf4' : '#ffffff',
+                        borderColor: solveType === 'MANUAL_MATCH' ? 'var(--teal-600)' : '#cbd5e1',
+                        borderWidth: solveType === 'MANUAL_MATCH' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('MANUAL_MATCH');
+                        setSolveTargetStatus('Matched');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveType"
+                          checked={solveType === 'MANUAL_MATCH'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--teal-700)' }}>🟢 Manual Match Override</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Authorize 3-way match based on scroll evidence and advance to Ready for Booking in General Ledger.
+                      </div>
+                    </div>
+
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'POST_TO_SUSPENSE' ? '#fffbeb' : '#ffffff',
+                        borderColor: solveType === 'POST_TO_SUSPENSE' ? 'var(--amber-600)' : '#cbd5e1',
+                        borderWidth: solveType === 'POST_TO_SUSPENSE' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('POST_TO_SUSPENSE');
+                        setSolveTargetStatus('Suspend');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveType"
+                          checked={solveType === 'POST_TO_SUSPENSE'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--amber-700)' }}>🟡 Transfer to Suspense Account</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Isolate variance into Treasury (8658-102) or RAT (8658-101) suspense register awaiting bank scroll credit.
+                      </div>
+                    </div>
+
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'MARK_RESOLVED' ? '#eff6ff' : '#ffffff',
+                        borderColor: solveType === 'MARK_RESOLVED' ? 'var(--navy-500)' : '#cbd5e1',
+                        borderWidth: solveType === 'MARK_RESOLVED' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('MARK_RESOLVED');
+                        setSolveTargetStatus('Resolved');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveType"
+                          checked={solveType === 'MARK_RESOLVED'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--navy-700)' }}>🔵 Mark as Resolved / Cleared</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Mark discrepancy cleared after administrative reconciliation or timing difference adjustment.
+                      </div>
+                    </div>
+
+                    <div
+                      className="p12 rounded pointer border transition-all"
+                      style={{
+                        background: solveType === 'DISCREPANCY_NOTICE' ? '#fef2f2' : '#ffffff',
+                        borderColor: solveType === 'DISCREPANCY_NOTICE' ? 'var(--red-600)' : '#cbd5e1',
+                        borderWidth: solveType === 'DISCREPANCY_NOTICE' ? '2px' : '1px',
+                      }}
+                      onClick={() => {
+                        setSolveType('DISCREPANCY_NOTICE');
+                        setSolveTargetStatus('Under Investigation');
+                      }}
+                    >
+                      <div className="flex items-center gap8 mb4">
+                        <input
+                          type="radio"
+                          name="solveType"
+                          checked={solveType === 'DISCREPANCY_NOTICE'}
+                          onChange={() => {}}
+                        />
+                        <strong style={{ color: 'var(--red-700)' }}>🔴 Issue Bank Discrepancy Notice</strong>
+                      </div>
+                      <div className="tiny muted ml20">
+                        Flag as Under Investigation and route to Bank Discrepancy Letter generator for clawback.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Conditional Suspense Head */}
+                {solveType === 'POST_TO_SUSPENSE' && (
+                  <div className="fld mb12">
+                    <label>Suspense Chart of Account Head <span className="req">*</span></label>
+                    <select
+                      className="inp"
+                      value={solveSuspenseHead}
+                      onChange={e => setSolveSuspenseHead(e.target.value)}
+                    >
+                      <option value="8658-00-102-01-00-01">8658-00-102-01-00-01 &mdash; Treasury Suspense Clearing Account</option>
+                      <option value="8658-00-101-01-00-01">8658-00-101-01-00-01 &mdash; Remittance in Transit (RAT) Suspense Account</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Authority Reference */}
+                <div className="fld mb12">
+                  <label>Authority Order / Sanction / Reference No</label>
+                  <input
+                    className="inp"
+                    value={solveRefNo}
+                    onChange={e => setSolveRefNo(e.target.value)}
+                    placeholder="e.g. SANCTION/2026/09/23-01 or BANK-REC-8812"
+                  />
+                </div>
+
+                {/* Justification / Remarks */}
+                <div className="fld mb12">
+                  <label>Resolution Justification &amp; Audit Remarks <span className="req">*</span></label>
+                  <textarea
+                    className="inp"
+                    rows={3}
+                    value={solveRemarks}
+                    onChange={e => setSolveRemarks(e.target.value)}
+                    placeholder="Provide the administrative, bank evidence, or audit justification for solving this discrepancy..."
+                    required
+                  />
+                </div>
+
+                <div className="box info small">
+                  <strong>Database Synchronization:</strong> This action directly updates <code>ifms_budget.rev_recon_result</code>, inserts an approved override in <code>rev_recon_override</code>, records CDC in <code>audit_change_log</code>, and notifies the PAO Checker.
+                </div>
+              </div>
+
+              <div className="modal-f flex justify-between items-center">
+                <button type="button" className="btn btn-sm" onClick={() => setSolveModalRow(null)} disabled={solveLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-ok btn-sm" disabled={solveLoading}>
+                  {solveLoading ? 'Saving to Database...' : '⚡ Confirm & Persist Solution to Database'}
                 </button>
               </div>
             </form>

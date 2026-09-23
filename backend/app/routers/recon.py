@@ -8,6 +8,7 @@ from app.schemas.recon import (
     ReconRunRequest,
     ReconOverrideProposeRequest,
     ReconOverrideApproveRequest,
+    ReconSolveRequest,
 )
 from app.services.recon_engine import ReconEngine, ReconEngineService
 
@@ -124,4 +125,51 @@ async def approve_override(
     approved = req.approved if req.approved is not None else (req.decision == "APPROVED")
     return await ReconEngine.approve_manual_override(
         db, recon_id, approved, req.remarks, user.user_id
+    )
+
+@router.get("/results/{recon_id}/trace", dependencies=[Depends(require_capability("nav.recon"))])
+@router.post("/results/{recon_id}/trace", dependencies=[Depends(require_capability("nav.recon"))])
+async def trace_recon_result(
+    recon_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await ReconEngine.trace_recon_result(db, recon_id, user.user_id)
+
+@router.post("/results/{recon_id}/solve", dependencies=[Depends(require_capability("override.propose"))])
+async def solve_recon_discrepancy(
+    recon_id: int,
+    req: ReconSolveRequest,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await ReconEngine.solve_recon_discrepancy(
+        db=db,
+        recon_id=recon_id,
+        resolution_type=req.resolution_type,
+        target_status=req.target_status,
+        remarks=req.remarks,
+        reference_no=req.reference_no,
+        user_id=user.user_id,
+        suspense_head_code=req.suspense_head_code,
+        adjust_amount=req.adjust_amount
+    )
+
+@router.post("/solve", dependencies=[Depends(require_capability("override.propose"))])
+async def solve_recon_discrepancy_root(
+    req: ReconSolveRequest,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    recon_id = req.recon_id or 1
+    return await ReconEngine.solve_recon_discrepancy(
+        db=db,
+        recon_id=recon_id,
+        resolution_type=req.resolution_type,
+        target_status=req.target_status,
+        remarks=req.remarks,
+        reference_no=req.reference_no,
+        user_id=user.user_id,
+        suspense_head_code=req.suspense_head_code,
+        adjust_amount=req.adjust_amount
     )
