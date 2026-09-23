@@ -307,8 +307,9 @@ class ReconEngineService:
         await self.db.execute(update(RevReconRun).values(is_current=False))
 
         # Generate Recon Run No
-        seq_res = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('RUN_SEQ', 'RUN', '2026-27')"))
-        run_no = seq_res.scalar() or f"RUN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        run_date_str = b_date.strftime("%Y%m%d")
+        seq_res = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('RUN_SEQ', 'RUN', :dt)"), {"dt": run_date_str})
+        run_no = seq_res.scalar() or f"RUN-{run_date_str}-{datetime.now().strftime('%H%M%S')}"
 
         recon_run = RevReconRun(
             run_no=run_no,
@@ -335,12 +336,22 @@ class ReconEngineService:
         total_penal_interest = Decimal("0.00")
 
         # Process each match group through rules RR-01 to RR-08
+        recon_idx = 0
         for group_key, group in grouped_candidates.items():
+            recon_idx += 1
             result_data = self._apply_reconciliation_rules(group, amt_tolerance, date_tolerance, penal_rate, b_date)
             
-            # Sequence for IFMS Revenue Transaction ID
-            txn_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('REV_TXN_SEQ', 'REV-TXN', '2026-27')"))
-            rev_txn_id = txn_seq.scalar() or f"REV-TXN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            p_first = group["portal"][0] if group["portal"] else None
+            b_first = group["bank"][0] if group["bank"] else None
+            r_first = group["rbi"][0] if group["rbi"] else None
+
+            # Determine automated date on which receipt was created / paid
+            rec_date = (p_first and p_first.payment_date) or (b_first and (b_first.bank_remittance_date or b_first.payment_received_date or b_first.scroll_date)) or (r_first and r_first.rbi_credit_date) or b_date or date.today()
+            date_token = rec_date.strftime("%Y%m%d")
+
+            # Sequence for IFMS Revenue Transaction ID embedding the automated receipt creation date
+            txn_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('REV_TXN_SEQ', 'REV-TXN', :dt)"), {"dt": date_token})
+            rev_txn_id = txn_seq.scalar() or f"REV-TXN-{date_token}-{str(recon_idx).zfill(6)}"
 
             recon_result = RevReconResult(
                 rev_transaction_id=rev_txn_id,
@@ -386,8 +397,8 @@ class ReconEngineService:
                 for b in group["bank"]:
                     b_delay, b_penal = self._calculate_bank_leg_penal(b, penal_rate)
                     if b_delay > 0:
-                        claim_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('CLAIM_SEQ', 'SLA-CLM', '2026-27')"))
-                        claim_no = claim_seq.scalar() or f"SLA-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                        claim_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('CLAIM_SEQ', 'SLA-CLM', :dt)"), {"dt": date_token})
+                        claim_no = claim_seq.scalar() or f"SLA-CLM-{date_token}-{str(recon_idx).zfill(6)}"
 
                         # Look up bank_id
                         bank_q = select(RevAgencyBank.bank_id).where(RevAgencyBank.bank_code == b.bank_code)
@@ -418,8 +429,8 @@ class ReconEngineService:
 
             # Create Exception if non-matched
             if result_data["status"] in ["Suspend", "RAT", "Mismatch", "Duplicate", "Under Investigation"]:
-                exc_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('EXC_SEQ', 'EXC', '2026-27')"))
-                exc_no = exc_seq.scalar() or f"EXC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                exc_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('EXC_SEQ', 'EXC', :dt)"), {"dt": date_token})
+                exc_no = exc_seq.scalar() or f"EXC-{date_token}-{str(recon_idx).zfill(6)}"
                 
                 cat, sev = self._categorize_exception(result_data["status"], result_data["rule_applied"])
                 exc = RevException(
@@ -433,6 +444,7 @@ class ReconEngineService:
                     exception_detail=result_data["match_reason"]
                 )
                 self.db.add(exc)
+
 
             # Create Suspense register entry if required
             if result_data["status"] in ["Suspend", "RAT", "Mismatch", "Duplicate"]:

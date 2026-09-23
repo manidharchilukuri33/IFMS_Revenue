@@ -172,9 +172,16 @@ export const ExceptionsPage: React.FC = () => {
         const rawCat = e.category || e.exception_type || 'Amount mismatch';
         const cat = normalizeCategory(rawCat);
 
+        const dateToken = raised.replace(/[^0-9]/g, '');
+        const excCode = e.exception_no || e.exception_code || `EXC-${dateToken}-${String(e.id || idx + 1).padStart(6, '0')}`;
+        let revId = e.rev_transaction_id || e.rev_id;
+        if (!revId || revId.includes('2026-27')) {
+          revId = revId ? revId.replace('2026-27', dateToken) : `REV-TXN-${dateToken}-${String(e.recon_id || e.id || idx + 1).padStart(6, '0')}`;
+        }
+
         return {
           id: e.id || idx + 1,
-          excCode: e.exception_code || `EXC-2026-${String(e.id || idx + 1).padStart(5, '0')}`,
+          excCode,
           category: cat,
           severity: (e.severity || 'High') as any,
           source: e.revenue_source || 'GST',
@@ -198,7 +205,7 @@ export const ExceptionsPage: React.FC = () => {
             { by: 'sysadmin.ifms', text: 'Exception logged from reconciliation run', ts: '2026-09-10 14:00:00' },
           ],
           reconId: e.recon_id,
-          revId: e.rev_id || `REV-TXN-${idx + 1}`,
+          revId,
         };
       });
 

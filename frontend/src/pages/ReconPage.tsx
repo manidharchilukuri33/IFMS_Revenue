@@ -123,10 +123,27 @@ export const ReconPage: React.FC = () => {
         const diff = Number(r.amount_difference ?? r.difference_amount ?? r.diff ?? Math.abs(portalAmt - rbiAmt));
         const status = r.status || r.reconciliation_status || 'Matched';
 
+        const portalDate = r.portal_date || r.payment_date || '2026-09-10';
+        const bankDate = r.bank_date || r.bank_remittance_date || portalDate;
+        const rbiDate = r.rbi_date || r.rbi_credit_date || portalDate;
+
+        // Automated receipt creation / payment date
+        const recDate = r.portal_date || r.payment_date || r.bank_date || (r.created_at ? r.created_at.slice(0, 10) : '2026-09-10');
+        const dateToken = recDate.replace(/[^0-9]/g, '');
+        const seqSuffix = String(r.recon_id || r.id || idx + 1).padStart(6, '0');
+
+        let revId = r.rev_transaction_id;
+        if (!revId || revId.includes('2026-27')) {
+          revId = revId ? revId.replace('2026-27', dateToken) : `REV-TXN-${dateToken}-${seqSuffix}`;
+        }
+
+        // Reconciliation ID formatted with automated receipt date: REC-YYYYMMDD-000766
+        const reconCode = r.recon_code || (revId.startsWith('REV-TXN') ? revId.replace('REV-TXN', 'REC') : `REC-${dateToken}-${seqSuffix}`);
+
         return {
           id: r.recon_id || r.id || idx + 1,
-          reconCode: r.rev_transaction_id || r.recon_code || `REC-2026-${String(r.recon_id || idx + 1).padStart(5, '0')}`,
-          revId: r.rev_transaction_id || `REV-TXN-${String(r.recon_id || idx + 1).padStart(5, '0')}`,
+          reconCode,
+          revId,
           source: r.revenue_source || r.source || 'GST',
           dept: r.dept_code || r.department_code || r.dept || 'TT',
           pao: r.pao_code || r.pao || 'PAO21',
@@ -137,9 +154,9 @@ export const ReconPage: React.FC = () => {
           bankAmt: bankAmt || (status === 'Matched' ? portalAmt : 0),
           rbiAmt: rbiAmt || (status === 'Matched' ? portalAmt : 0),
           diff,
-          portalDate: r.portal_date || r.payment_date || '2026-09-10',
-          bankDate: r.bank_date || r.bank_remittance_date || '2026-09-10',
-          rbiDate: r.rbi_date || r.rbi_credit_date || '2026-09-10',
+          portalDate,
+          bankDate,
+          rbiDate,
           matchType: r.match_type || r.matchType || (diff === 0 ? 'Three-Way Exact' : 'Amount Variance'),
           status,
           ruleCode: r.rule_applied || r.rule_code || r.rule || 'RR-01',
