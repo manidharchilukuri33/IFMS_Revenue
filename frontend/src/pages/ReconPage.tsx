@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../api/client';
-import { money, cnt, compact, plain, fmtDate, fmtDateDash, fmtStamp, badgeClass, exportCSV } from '../utils/format';
+import { money, cnt, compact, plain, fmtDate, fmtDateDash, fmtStamp, badgeClass, exportCSV, printOfficialLetter } from '../utils/format';
 
 interface ReconRow {
   id: number;
@@ -2192,7 +2192,31 @@ export const ReconPage: React.FC = () => {
                     type="button"
                     className="btn btn-sm btn-outline"
                     title="Print official letter document"
-                    onClick={() => window.print()}
+                    onClick={() => {
+                      if (!letterModalRow) return;
+                      printOfficialLetter({
+                        letterNo: letterSentResult?.letter_no,
+                        date: letterModalRow.portalDate,
+                        recipientName: letterRecipientName,
+                        recipientAddress: letterRecipientAddress,
+                        recipientType: letterRecipientType,
+                        subject: letterSubject,
+                        body: letterBody,
+                        challan: letterModalRow.challan,
+                        cin: letterModalRow.cin,
+                        payer: letterModalRow.payer,
+                        source: letterModalRow.source,
+                        dept: letterModalRow.dept,
+                        pao: letterModalRow.pao,
+                        portalAmt: letterModalRow.portalAmt,
+                        bankAmt: letterModalRow.bankAmt,
+                        rbiAmt: letterModalRow.rbiAmt,
+                        diff: letterModalRow.diff,
+                        slaDelay: letterModalRow.slaDelay,
+                        penal: letterModalRow.penal,
+                        revId: letterModalRow.revId,
+                      });
+                    }}
                   >
                     🖨️ Print Letter
                   </button>

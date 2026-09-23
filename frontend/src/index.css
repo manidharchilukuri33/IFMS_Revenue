@@ -557,4 +557,139 @@ table.dt tfoot td { background: var(--grey-050); font-weight: 700; border-top: 2
   to { opacity: 1; transform: none; }
 }
 
+/* ==========================================================================
+   PRINT MEDIA STYLES (Prints clean official letter document ONLY)
+   ========================================================================== */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11.5pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide app navigation, sidebar, topbar, cards, buttons, overlays */
+  aside,
+  header,
+  nav,
+  .sidebar,
+  .topbar,
+  .crumb,
+  .pagehead,
+  .filterbar,
+  .tbl-foot,
+  .card-h,
+  .card-b > *:not(.letter):not(.printable-letter),
+  .toast-container,
+  #toasts,
+  .no-print,
+  button,
+  .btn,
+  .modal-h,
+  .modal-f,
+  .kpi,
+  .grid,
+  .legend,
+  .warnbar,
+  .errbar,
+  .okbar,
+  .modal-b > .card,
+  .fld,
+  input,
+  select,
+  textarea,
+  .box.info {
+    display: none !important;
+  }
+
+  .layout {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .main, .content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .ovl {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .modal {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    display: block !important;
+  }
+
+  .modal-b {
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Force display and format the letter document */
+  .letter,
+  .printable-letter {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Times New Roman', Georgia, serif !important;
+    font-size: 11pt !important;
+    line-height: 1.55 !important;
+    page-break-inside: avoid;
+  }
+
+  .letter h4 {
+    font-size: 14pt !important;
+    margin-bottom: 2px !important;
+  }
+
+  .letter .lhead {
+    border-bottom: 2px solid #000 !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .letter table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 12px 0 !important;
+    font-size: 10pt !important;
+    page-break-inside: avoid !important;
+  }
+
+  .letter table th,
+  .letter table td {
+    border: 1px solid #333 !important;
+    padding: 5px 8px !important;
+    color: #000 !important;
+  }
+
+  .letter table th {
+    background-color: #f1f5f9 !important;
+    font-weight: bold !important;
+  }
+}
+
+
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../api/client';
-import { money, cnt, compact, fmtDate, fmtDateDash, fmtStamp, badgeClass, exportCSV } from '../utils/format';
+import { money, cnt, compact, fmtDate, fmtDateDash, fmtStamp, badgeClass, exportCSV, printOfficialLetter } from '../utils/format';
 
 interface ExceptionItem {
   id: number;
@@ -1322,7 +1322,29 @@ export const ExceptionsPage: React.FC = () => {
                     type="button"
                     className="btn btn-sm btn-outline"
                     title="Print official letter document"
-                    onClick={() => window.print()}
+                    onClick={() => {
+                      if (!letterModal) return;
+                      printOfficialLetter({
+                        letterNo: letterSentResult?.letter_no,
+                        date: letterModal.raisedOn,
+                        recipientName: letterRecipientName,
+                        recipientAddress: letterRecipientAddress,
+                        recipientType: letterRecipientType,
+                        subject: letterSubject,
+                        body: letterBody,
+                        challan: letterModal.challan,
+                        payer: letterModal.payer,
+                        source: letterModal.source,
+                        dept: letterModal.dept,
+                        pao: letterModal.pao,
+                        portalAmt: letterModal.amount,
+                        bankAmt: letterModal.amount,
+                        rbiAmt: 0,
+                        diff: letterModal.amount,
+                        slaDelay: letterModal.ageing,
+                        revId: letterModal.revId || `EXC-${letterModal.excCode}`,
+                      });
+                    }}
                   >
                     🖨️ Print Letter
                   </button>
