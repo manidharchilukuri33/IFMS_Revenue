@@ -9,6 +9,7 @@ from app.schemas.recon import (
     ReconOverrideProposeRequest,
     ReconOverrideApproveRequest,
     ReconSolveRequest,
+    ReconLetterSendRequest,
 )
 from app.services.recon_engine import ReconEngine, ReconEngineService
 
@@ -173,3 +174,42 @@ async def solve_recon_discrepancy_root(
         suspense_head_code=req.suspense_head_code,
         adjust_amount=req.adjust_amount
     )
+
+@router.post("/results/{recon_id}/send-letter", dependencies=[Depends(require_capability("override.propose"))])
+async def send_recon_discrepancy_letter(
+    recon_id: int,
+    req: ReconLetterSendRequest,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await ReconEngine.send_discrepancy_letter(
+        db=db,
+        recon_id=recon_id,
+        recipient_type=req.recipient_type,
+        recipient_name=req.recipient_name,
+        recipient_address=req.recipient_address,
+        letter_subject=req.letter_subject,
+        letter_body=req.letter_body,
+        user_id=user.user_id,
+        target_role=req.target_role or "PAO_CHECK"
+    )
+
+@router.post("/send-letter", dependencies=[Depends(require_capability("override.propose"))])
+async def send_recon_discrepancy_letter_root(
+    req: ReconLetterSendRequest,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    recon_id = req.recon_id or 1
+    return await ReconEngine.send_discrepancy_letter(
+        db=db,
+        recon_id=recon_id,
+        recipient_type=req.recipient_type,
+        recipient_name=req.recipient_name,
+        recipient_address=req.recipient_address,
+        letter_subject=req.letter_subject,
+        letter_body=req.letter_body,
+        user_id=user.user_id,
+        target_role=req.target_role or "PAO_CHECK"
+    )
+

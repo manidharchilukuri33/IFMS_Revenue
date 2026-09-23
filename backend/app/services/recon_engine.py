@@ -8,7 +8,7 @@ from app.models.staging import (
     RevUploadBatch, RevPortalTransactionStaging, RevAgencyBankScrollStaging, RevRbiLuggageStaging
 )
 from app.models.recon import RevReconRun, RevReconResult, RevReconLegLinkage, RevReconOverride
-from app.models.exceptions import RevException, RevExceptionNote
+from app.models.exceptions import RevException, RevExceptionNote, RevExceptionLetter
 from app.models.sla import RevPenalClaim
 from app.models.accounting import RevSuspenseRegister
 from app.models.masters import RevSystemConfig, RevSlaRule, RevAgencyBank
@@ -957,6 +957,144 @@ class ReconEngineService:
             "resolved_at": datetime.now().isoformat()
         }
 
+    async def send_discrepancy_letter(
+        self,
+        recon_id: int,
+        recipient_type: str,
+        recipient_name: str,
+        recipient_address: Optional[str],
+        letter_subject: str,
+        letter_body: str,
+        user_id: int,
+        target_role: Optional[str] = "PAO_CHECK"
+    ) -> Dict[str, Any]:
+        recon = await self.db.get(RevReconResult, recon_id)
+        if not recon:
+            raise NotFoundException("Recon Result", recon_id)
+
+        # 1. Find or auto-create linked RevException for foreign key integrity
+        exc_q = select(RevException).where(RevException.recon_id == recon_id)
+        exc_res = await self.db.execute(exc_q)
+        exc = exc_res.scalars().first()
+
+        if not exc:
+            seq_exc = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('EXC_SEQ', 'EXC', '2026-27')"))
+            exc_no = seq_exc.scalar() or f"EXC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            
+            sev = "High" if (recon.amount_difference and abs(recon.amount_difference) > Decimal("10000.00")) or recon.status in ["Mismatch", "Duplicate"] else "Medium"
+            
+            exc = RevException(
+                exception_no=exc_no,
+                recon_id=recon_id,
+                category=recon.status if recon.status in ["Mismatch", "Duplicate", "Suspend", "RAT"] else "Reconciliation Discrepancy",
+                severity=sev,
+                status="Open",
+                ownership_type=recipient_type or "AGENCY_BANK",
+                due_date=date.today() + timedelta(days=7),
+                exception_detail=f"Discrepancy notice issued for Recon #{recon.recon_id} ({recon.rev_transaction_id}). Challan: {recon.challan_no or 'N/A'}. Status: {recon.status}. Reason: {recon.match_reason}",
+                created_by=user_id,
+                updated_by=user_id,
+                organization_id=1,
+                org_branch_id=1,
+                workflow_status="ACTIVE"
+            )
+            self.db.add(exc)
+            await self.db.flush()
+
+        # 2. Generate sequential Letter Number
+        seq_ltr = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('LETTER_SEQ', 'LTR-DISC', '2026-27')"))
+        letter_no = seq_ltr.scalar() or f"LTR-DISC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        # 3. Create RevExceptionLetter in PostgreSQL
+        letter = RevExceptionLetter(
+            letter_no=letter_no,
+            exception_id=exc.exception_id,
+            recipient_type=recipient_type,
+            recipient_name=recipient_name,
+            recipient_address=recipient_address,
+            letter_subject=letter_subject,
+            letter_body=letter_body,
+            issued_date=date.today(),
+            issued_by=user_id,
+            status="ISSUED",
+            organization_id=1,
+            org_branch_id=1,
+            created_by=user_id,
+            updated_by=user_id,
+            workflow_status="ISSUED"
+        )
+        self.db.add(letter)
+
+        # 4. Create timeline note in RevExceptionNote
+        note = RevExceptionNote(
+            exception_id=exc.exception_id,
+            action_type="LETTER_ISSUED",
+            note_text=f"Discrepancy notice {letter_no} issued to {recipient_name} ({recipient_type}). Subject: {letter_subject}",
+            created_by=user_id,
+            organization_id=1,
+            org_branch_id=1,
+            workflow_status="ACTIVE"
+        )
+        self.db.add(note)
+
+        # 5. Record in AuditChangeLog
+        audit = AuditChangeLog(
+            schema_name="ifms_budget",
+            table_name="rev_exception_letter",
+            operation="I",
+            row_pk=letter_no,
+            new_data={
+                "letter_no": letter_no,
+                "exception_id": exc.exception_id,
+                "recon_id": recon_id,
+                "recipient_name": recipient_name,
+                "recipient_type": recipient_type,
+                "subject": letter_subject,
+                "issued_by": user_id
+            },
+            changed_by=user_id,
+            changed_at=datetime.now()
+        )
+        self.db.add(audit)
+
+        # 6. Push SystemNotification
+        notif = SystemNotification(
+            notification_code=f"NOTIF-LTR-{recon_id}-{datetime.now().strftime('%H%M%S')}",
+            title=f"Discrepancy Notice Dispatched: {letter_no}",
+            text=f"Official notice {letter_no} issued to {recipient_name} for Challan {recon.challan_no or recon.rev_transaction_id} ({recon.status}).",
+            level="info",
+            target_role=target_role or "PAO_CHECK",
+            action_module="Recon",
+            reference_id=str(recon_id),
+            is_read=False,
+            created_at=datetime.now(),
+            created_by=user_id,
+            updated_by=user_id,
+            workflow_status="ACTIVE"
+        )
+        self.db.add(notif)
+
+        await self.db.commit()
+        await self.db.refresh(letter)
+
+        return {
+            "status": "SUCCESS",
+            "message": f"Discrepancy letter {letter.letter_no} issued and logged successfully.",
+            "letter_id": letter.letter_id,
+            "letter_no": letter.letter_no,
+            "exception_id": exc.exception_id,
+            "exception_no": exc.exception_no,
+            "recon_id": recon_id,
+            "recipient_type": letter.recipient_type,
+            "recipient_name": letter.recipient_name,
+            "recipient_address": letter.recipient_address,
+            "letter_subject": letter.letter_subject,
+            "letter_body": letter.letter_body,
+            "issued_date": letter.issued_date.isoformat(),
+            "status": letter.status
+        }
+
+
     async def get_summary(self) -> Dict[str, Any]:
         # 1. Total Staged Portal records
         p_q = select(func.count(RevPortalTransactionStaging.portal_item_id), func.coalesce(func.sum(RevPortalTransactionStaging.amount), Decimal("0.00")))
@@ -1147,4 +1285,29 @@ class ReconEngine:
         return await svc.solve_discrepancy(
             recon_id, resolution_type, target_status, remarks, reference_no, user_id, suspense_head_code, adjust_amount
         )
+
+    @staticmethod
+    async def send_discrepancy_letter(
+        db: AsyncSession,
+        recon_id: int,
+        recipient_type: str,
+        recipient_name: str,
+        recipient_address: Optional[str],
+        letter_subject: str,
+        letter_body: str,
+        user_id: int,
+        target_role: Optional[str] = "PAO_CHECK"
+    ) -> Dict[str, Any]:
+        svc = ReconEngineService(db)
+        return await svc.send_discrepancy_letter(
+            recon_id=recon_id,
+            recipient_type=recipient_type,
+            recipient_name=recipient_name,
+            recipient_address=recipient_address,
+            letter_subject=letter_subject,
+            letter_body=letter_body,
+            user_id=user_id,
+            target_role=target_role
+        )
+
 

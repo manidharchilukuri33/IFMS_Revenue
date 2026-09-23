@@ -138,3 +138,13 @@ class ReconSolveRequest(BaseModel):
     reference_no: Optional[str] = None
     suspense_head_code: Optional[str] = None
     adjust_amount: Optional[Decimal] = None
+
+class ReconLetterSendRequest(BaseModel):
+    recon_id: Optional[int] = None
+    recipient_type: str = "AGENCY_BANK" # 'AGENCY_BANK', 'PAO_OFFICER', 'TREASURY_ADMIN', 'DDO', 'TAXPAYER', 'CUSTOM_OFFICER'
+    recipient_name: str
+    recipient_address: Optional[str] = None
+    letter_subject: str
+    letter_body: str
+    target_role: Optional[str] = "PAO_CHECK"
+

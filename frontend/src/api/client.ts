@@ -318,6 +318,20 @@ class ApiClient {
     });
   }
 
+  async sendReconDiscrepancyLetter(reconId: number, payload: {
+    recipient_type: string;
+    recipient_name: string;
+    recipient_address?: string;
+    letter_subject: string;
+    letter_body: string;
+    target_role?: string;
+  }) {
+    return this.request<any>(`/recon/results/${reconId}/send-letter`, {
+      method: 'POST',
+      body: JSON.stringify({ recon_id: reconId, ...payload }),
+    });
+  }
+
   // 6. Exception Management
   async getExceptions(params?: any) {
     const qp = new URLSearchParams();

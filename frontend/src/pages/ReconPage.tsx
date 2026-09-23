@@ -82,6 +82,17 @@ export const ReconPage: React.FC = () => {
   const [solveSuspenseHead, setSolveSuspenseHead] = useState('8658-00-102-01-00-01');
   const [solveLoading, setSolveLoading] = useState(false);
 
+  // Discrepancy Letter Modal States
+  const [letterModalRow, setLetterModalRow] = useState<ReconRow | null>(null);
+  const [letterRecipientType, setLetterRecipientType] = useState('AGENCY_BANK');
+  const [letterRecipientName, setLetterRecipientName] = useState('');
+  const [letterRecipientAddress, setLetterRecipientAddress] = useState('');
+  const [letterSubject, setLetterSubject] = useState('');
+  const [letterBody, setLetterBody] = useState('');
+  const [letterSending, setLetterSending] = useState(false);
+  const [letterSentResult, setLetterSentResult] = useState<any | null>(null);
+
+
   const canRun = ['SYSADMIN', 'TRE_ADMIN', 'PAO_MAKER'].includes(userRole);
   const canReset = ['SYSADMIN', 'TRE_ADMIN'].includes(userRole);
   const canOverride = ['PAO_MAKER', 'TRE_ADMIN', 'SYSADMIN'].includes(userRole);
@@ -402,6 +413,149 @@ export const ReconPage: React.FC = () => {
       setSolveLoading(false);
     }
   };
+
+  const handleOpenLetter = (r: ReconRow) => {
+    setLetterModalRow(r);
+    setLetterSentResult(null);
+
+    let defaultType = 'AGENCY_BANK';
+    let defaultName = 'The Branch Manager / Nodal Officer, State Bank of India';
+    let defaultAddr = 'Focal Point Collection Branch, Government Business Division, New Delhi';
+
+    if (r.status === 'RAT') {
+      defaultType = 'PAO_OFFICER';
+      defaultName = `Pay & Accounts Officer (${r.pao} - ${r.dept})`;
+      defaultAddr = `Office of the Pay & Accounts Officer, Directorate of Accounts, GNCTD`;
+    } else if (r.status === 'Under Investigation') {
+      defaultType = 'DDO';
+      defaultName = `Drawing & Disbursing Officer (DDO), Dept of ${r.dept}`;
+      defaultAddr = `Department of ${r.dept}, Government of NCT of Delhi`;
+    } else if (r.status === 'Duplicate') {
+      defaultType = 'AGENCY_BANK';
+      defaultName = 'Chief Manager (Government Accounts & Settlements), Agency Bank';
+      defaultAddr = 'State Focal Point Branch, Commercial & Treasury Banking Division';
+    }
+
+    const sub = `Discrepancy Notice: Rectification & Confirmation Required for Challan ${r.challan} (${r.status})`;
+
+    let problemDetail = '';
+    if (r.status === 'Mismatch') {
+      problemDetail = `1. Discrepancy Nature: Amount Mismatch / Short Credit in Agency Bank Scroll.\n` +
+        `2. Departmental Portal Filing Amount: ₹${money(r.portalAmt)}\n` +
+        `3. Agency Bank Scroll Remittance Amount: ₹${money(r.bankAmt)}\n` +
+        `4. RBI CAS Luggage Settlement Amount: ₹${money(r.rbiAmt)}\n` +
+        `5. Net Variance / Disputed Difference: ₹${money(r.diff)}\n` +
+        `6. Payment / Challan Date: ${r.portalDate}\n` +
+        `7. Audit Observation: The collection scroll transmitted by the Agency Bank reflects an amount lower than the valid taxpayer portal challan. Immediate scroll rectification or supplementary scroll credit of ₹${money(r.diff)} is demanded.`;
+    } else if (r.status === 'Suspend') {
+      problemDetail = `1. Discrepancy Nature: Remittance in Transit / Missing RBI CAS Luggage Credit.\n` +
+        `2. Departmental Portal Filing Amount: ₹${money(r.portalAmt)}\n` +
+        `3. Bank Scroll Remittance Amount: ₹${money(r.bankAmt)}\n` +
+        `4. RBI CAS Luggage Credit: ₹0.00 (Unsettled / Missing Credit)\n` +
+        `5. SLA Remittance Delay: ${r.slaDelay} calendar days beyond permissible T+1 window.\n` +
+        `6. Penal Interest Accrued: ₹${money(r.penal)} (Leviable under RBI Master Circular DGBA.GBD).\n` +
+        `7. Audit Observation: Tax collection was received by the bank branch on ${r.portalDate} but has not reached RBI CAS Nagpur within SLA. Immediate transmission and UTR confirmation is demanded.`;
+    } else if (r.status === 'Duplicate') {
+      problemDetail = `1. Discrepancy Nature: Duplicate Scroll Lines / Excess Settlement.\n` +
+        `2. Portal Filing Amount: ₹${money(r.portalAmt)}\n` +
+        `3. Aggregate Bank Scroll Amount: ₹${money(r.bankAmt)}\n` +
+        `4. Excess Scroll Credit: ₹${money(r.diff)}\n` +
+        `5. Audit Observation: Multiple scroll entries were uploaded against Challan ${r.challan} exceeding the portal amount. Submit duplicate scroll reversal or chargeback reconciliation report.`;
+    } else if (r.status === 'RAT') {
+      problemDetail = `1. Discrepancy Nature: Receipt Awaiting Transfer (RAT) / Orphan Bank Credit.\n` +
+        `2. Bank / RBI Luggage Credit: ₹${money(r.rbiAmt || r.bankAmt)}\n` +
+        `3. Departmental Portal Record: Nil (Not traced in departmental database)\n` +
+        `4. Audit Observation: Agency bank scroll and RBI CAS report a credit under Head ${r.source}/${r.dept}, but no matching portal challan exists. Immediate mapping with remitter TIN/PAN and DDO verification is required.`;
+    } else {
+      problemDetail = `1. Discrepancy Nature: ${r.status} (${r.matchType}).\n` +
+        `2. Challan No / CIN: ${r.challan} / ${r.cin || '—'}\n` +
+        `3. Portal Amount: ₹${money(r.portalAmt)} | Bank Amount: ₹${money(r.bankAmt)} | RBI Amount: ₹${money(r.rbiAmt)}\n` +
+        `4. System Reason: ${r.reason}\n` +
+        `5. Audit Observation: Scrutiny indicates reconciliation variance requiring prompt departmental and nodal branch verification.`;
+    }
+
+    const bodyText = `To,\n${defaultName}\n${defaultAddr}\n\n` +
+      `Subject: ${sub}\n\n` +
+      `Sir / Madam,\n\n` +
+      `During the automated three-way daily revenue reconciliation between Departmental Portal Filings, Agency Bank Scrolls, and RBI CAS Nagpur Luggage Files for FY 2026-27, the following discrepancy has been identified against Government Account:\n\n` +
+      `--- RECEIPT TRANSACTION & DISCREPANCY SPECIFICATIONS ---\n` +
+      `• IFMS Rev Transaction ID : ${r.revId}\n` +
+      `• Challan Reference No    : ${r.challan}\n` +
+      `• CIN / CPIN              : ${r.cin || '—'}\n` +
+      `• Taxpayer / Remitter     : ${r.payer}\n` +
+      `• Revenue Source & Dept   : ${r.source} (${r.dept})\n` +
+      `• PAO Office Jurisdiction : ${r.pao}\n` +
+      `• Transaction Date        : ${r.portalDate}\n` +
+      `• Discrepancy Status      : ${r.status}\n\n` +
+      `--- DETAILED DISCREPANCY BREAKDOWN ---\n` +
+      `${problemDetail}\n\n` +
+      `In accordance with the IFMS Revenue Management Rules and RBI Remittance Guidelines, you are hereby requested to investigate this matter, provide the rectification scroll / UTR confirmation, and submit a compliance reply within 7 working days.\n\n` +
+      `Yours faithfully,\n\n` +
+      `(Authorized Signatory)\n` +
+      `Pay & Accounts Officer / Treasury Officer\n` +
+      `Directorate of Accounts, Government of NCT of Delhi`;
+
+    setLetterRecipientType(defaultType);
+    setLetterRecipientName(defaultName);
+    setLetterRecipientAddress(defaultAddr);
+    setLetterSubject(sub);
+    setLetterBody(bodyText);
+  };
+
+  const handleRecipientTypeChange = (type: string) => {
+    setLetterRecipientType(type);
+    if (!letterModalRow) return;
+    const r = letterModalRow;
+    let name = letterRecipientName;
+    let addr = letterRecipientAddress;
+    if (type === 'AGENCY_BANK') {
+      name = 'The Branch Manager / Nodal Officer, State Bank of India';
+      addr = 'Focal Point Collection Branch, Government Business Division, New Delhi';
+    } else if (type === 'PAO_OFFICER') {
+      name = `Pay & Accounts Officer (${r.pao} - ${r.dept})`;
+      addr = `Office of the Pay & Accounts Officer (${r.pao}), Directorate of Accounts, GNCTD`;
+    } else if (type === 'TREASURY_ADMIN') {
+      name = 'The Senior Treasury Officer / Joint Director (Treasury)';
+      addr = 'State Central Treasury & Revenue Settlement Cell, Directorate of Accounts';
+    } else if (type === 'DDO') {
+      name = `Drawing & Disbursing Officer (DDO), Dept of ${r.dept}`;
+      addr = `Department of ${r.dept}, Government of NCT of Delhi`;
+    } else if (type === 'TAXPAYER') {
+      name = r.payer || 'Taxpayer / Remitter';
+      addr = `Registered Taxpayer Address, Delhi / NCR (Challan: ${r.challan})`;
+    } else if (type === 'CUSTOM_OFFICER') {
+      name = 'Concerned Officer / Competent Authority';
+      addr = 'Directorate of Revenue & Accounts, GNCTD';
+    }
+    setLetterRecipientName(name);
+    setLetterRecipientAddress(addr);
+  };
+
+  const handleSendLetter = async (ev?: React.FormEvent) => {
+    if (ev) ev.preventDefault();
+    if (!letterModalRow) return;
+    try {
+      setLetterSending(true);
+      const reconId = letterModalRow.id;
+      const res = await api.sendReconDiscrepancyLetter(reconId, {
+        recipient_type: letterRecipientType,
+        recipient_name: letterRecipientName,
+        recipient_address: letterRecipientAddress,
+        letter_subject: letterSubject,
+        letter_body: letterBody,
+        target_role: 'PAO_CHECK',
+      });
+      setLetterSentResult(res);
+      showToast(`Discrepancy Notice ${res.letter_no || ''} dispatched & recorded in PostgreSQL database!`, 'success');
+      await fetchData();
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send discrepancy letter', 'error');
+    } finally {
+      setLetterSending(false);
+    }
+  };
+
 
   return (
     <div>
@@ -735,9 +889,10 @@ export const ReconPage: React.FC = () => {
                       <div className="small">{r.reason}</div>
                     </td>
                     <td>
-                      {r.status === 'Matched' ? (
+                      <div className="flex gap4 nowrap">
                         <button
                           className="btn btn-xs"
+                          title="Open reconciliation details drawer"
                           onClick={() => {
                             setSelectedRow(r);
                             setReconTab('a');
@@ -745,27 +900,37 @@ export const ReconPage: React.FC = () => {
                         >
                           Open
                         </button>
-                      ) : (
-                        <div className="flex gap4 nowrap">
-                          <button
-                            className="btn btn-xs btn-outline"
-                            style={{ borderColor: 'var(--navy-600, #1b4a83)', color: 'var(--navy-800, #0f2d52)', fontWeight: 600, padding: '2px 8px' }}
-                            title="Trace complete 3-way transaction path and audit log"
-                            onClick={() => handleOpenTrace(r)}
-                          >
-                            🔍 Trace
-                          </button>
-                          <button
-                            className="btn btn-xs btn-ok"
-                            style={{ fontWeight: 600, padding: '2px 8px' }}
-                            title="Solve discrepancy and persist resolution to database"
-                            onClick={() => handleOpenSolve(r)}
-                          >
-                            ⚡ Solve
-                          </button>
-                        </div>
-                      )}
+                        {r.status !== 'Matched' && (
+                          <>
+                            <button
+                              className="btn btn-xs btn-outline"
+                              style={{ borderColor: 'var(--navy-600, #1b4a83)', color: 'var(--navy-800, #0f2d52)', fontWeight: 600, padding: '2px 8px' }}
+                              title="Trace complete 3-way transaction path and audit log"
+                              onClick={() => handleOpenTrace(r)}
+                            >
+                              🔍 Trace
+                            </button>
+                            <button
+                              className="btn btn-xs btn-ok"
+                              style={{ fontWeight: 600, padding: '2px 8px' }}
+                              title="Solve discrepancy and persist resolution to database"
+                              onClick={() => handleOpenSolve(r)}
+                            >
+                              ⚡ Solve
+                            </button>
+                            <button
+                              className="btn btn-xs"
+                              style={{ fontWeight: 600, padding: '2px 8px', background: '#4338ca', color: '#ffffff', borderColor: '#3730a3' }}
+                              title="Draft and dispatch official discrepancy letter notice"
+                              onClick={() => handleOpenLetter(r)}
+                            >
+                              ✉️ Letter
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
+
                   </tr>
                 ))
               )}
@@ -1823,7 +1988,174 @@ export const ReconPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Discrepancy Notice Letter Modal */}
+      {letterModalRow && (
+        <div className="ovl">
+          <div className="modal" style={{ maxWidth: '980px', width: '95%' }}>
+            <div className="modal-h">
+              <div>
+                <h3>✉️ Official Discrepancy Notice: {letterModalRow.challan}</h3>
+                <div className="sub">
+                  Receipt: <strong className="mono">{letterModalRow.revId}</strong> &middot; Status: <span className={badgeClass(letterModalRow.status)}>{letterModalRow.status}</span> &middot; Source: <strong>{letterModalRow.source}</strong> ({letterModalRow.dept})
+                </div>
+              </div>
+              <button className="close" onClick={() => setLetterModalRow(null)}>
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleSendLetter}>
+              <div className="modal-b" style={{ maxHeight: 'calc(85vh - 120px)', overflowY: 'auto' }}>
+                {/* Dispatched Confirmation Banner */}
+                {letterSentResult && (
+                  <div className="box ok mb16" style={{ background: '#ecfdf5', borderColor: '#10b981', borderWidth: '2px' }}>
+                    <div className="flex items-center justify-between mb8">
+                      <strong style={{ color: '#065f46', fontSize: '15px' }}>
+                        ✅ Discrepancy Notice Dispatched &amp; Persisted to Database!
+                      </strong>
+                      <span className="badge b-green">STATUS: ISSUED</span>
+                    </div>
+                    <div className="small" style={{ color: '#047857' }}>
+                      Official Letter No: <strong className="mono">{letterSentResult.letter_no}</strong> &middot; Issued Date: <strong>{letterSentResult.issued_date}</strong> &middot; Recipient: <strong>{letterSentResult.recipient_name}</strong> ({letterSentResult.recipient_type})
+                    </div>
+                    <div className="tiny mt4" style={{ color: '#065f46' }}>
+                      This notice has been permanently recorded in <code>ifms_budget.rev_exception_letter</code>, added to exception timeline notes, logged in CDC audit log, and pushed as a system notification.
+                    </div>
+                  </div>
+                )}
+
+                {/* Receipt KPI Summary */}
+                <div className="grid g4 mb16">
+                  <div className="kpi">
+                    <div className="lab">Portal Filing Amount</div>
+                    <div className="val">{money(letterModalRow.portalAmt)}</div>
+                    <div className="sec">Challan: {letterModalRow.challan}</div>
+                  </div>
+                  <div className="kpi">
+                    <div className="lab">Bank Scroll Remittance</div>
+                    <div className="val">{money(letterModalRow.bankAmt)}</div>
+                    <div className="sec">Date: {fmtDateDash(letterModalRow.portalDate)}</div>
+                  </div>
+                  <div className="kpi">
+                    <div className="lab">RBI Settlement Credit</div>
+                    <div className="val">{money(letterModalRow.rbiAmt)}</div>
+                    <div className="sec">CAS Nagpur Leg</div>
+                  </div>
+                  <div className="kpi danger">
+                    <div className="lab">Variance / Penalty</div>
+                    <div className="val" style={{ color: 'var(--red-700)' }}>
+                      {letterModalRow.diff > 0 ? money(letterModalRow.diff) : letterModalRow.penal > 0 ? money(letterModalRow.penal) : '₹ 0.00'}
+                    </div>
+                    <div className="sec">
+                      {letterModalRow.slaDelay > 0 ? `${letterModalRow.slaDelay}d delay (Penal: ${money(letterModalRow.penal)})` : letterModalRow.status}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recipient Selection */}
+                <div className="card p12 mb16" style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}>
+                  <h4 className="mb8" style={{ color: 'var(--navy-900)' }}>1. Select Target Recipient Entity / Officer</h4>
+                  <div className="fld mb12">
+                    <label>Recipient Category <span className="req">*</span></label>
+                    <select
+                      className="inp"
+                      value={letterRecipientType}
+                      onChange={e => handleRecipientTypeChange(e.target.value)}
+                    >
+                      <option value="AGENCY_BANK">🏦 Agency Bank Branch Manager / Nodal Officer</option>
+                      <option value="PAO_OFFICER">🏛️ Pay &amp; Accounts Officer (PAO Lead / Checker)</option>
+                      <option value="TREASURY_ADMIN">⚖️ State Treasury Officer / Joint Director (Treasury)</option>
+                      <option value="DDO">🏢 Drawing &amp; Disbursing Officer (DDO - Department)</option>
+                      <option value="TAXPAYER">👤 Taxpayer / Remitter</option>
+                      <option value="CUSTOM_OFFICER">📋 Custom Authority / Other Officer</option>
+                    </select>
+                  </div>
+
+                  <div className="grid g2 gap12">
+                    <div className="fld">
+                      <label>Recipient Name &amp; Designation <span className="req">*</span></label>
+                      <input
+                        className="inp"
+                        value={letterRecipientName}
+                        onChange={e => setLetterRecipientName(e.target.value)}
+                        placeholder="e.g. Branch Manager, State Bank of India"
+                        required
+                      />
+                    </div>
+                    <div className="fld">
+                      <label>Recipient Address / Office Jurisdiction <span className="req">*</span></label>
+                      <input
+                        className="inp"
+                        value={letterRecipientAddress}
+                        onChange={e => setLetterRecipientAddress(e.target.value)}
+                        placeholder="e.g. Focal Point Collection Branch, Government Business Division"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subject and Body Editor */}
+                <div className="card p12 mb16" style={{ background: '#ffffff', border: '1px solid #cbd5e1' }}>
+                  <h4 className="mb8" style={{ color: 'var(--navy-900)' }}>2. Letter Subject &amp; Detailed Discrepancy Breakdown</h4>
+                  <div className="fld mb12">
+                    <label>Letter Subject <span className="req">*</span></label>
+                    <input
+                      className="inp"
+                      value={letterSubject}
+                      onChange={e => setLetterSubject(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="fld mb12">
+                    <label>Official Notice Body <span className="req">*</span></label>
+                    <textarea
+                      className="inp font-mono"
+                      rows={14}
+                      style={{ fontSize: '12px', lineHeight: '1.5' }}
+                      value={letterBody}
+                      onChange={e => setLetterBody(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="box info small">
+                    <strong>Database Persistence:</strong> Clicking &quot;Send Official Letter&quot; automatically inserts this notice into <code>ifms_budget.rev_exception_letter</code>, logs an entry in <code>rev_exception_note</code>, registers the change in <code>audit_change_log</code>, and routes a system notification to the PAO Checker.
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-f flex justify-between items-center">
+                <div className="flex gap8 items-center">
+                  <button type="button" className="btn btn-sm" onClick={() => setLetterModalRow(null)}>
+                    {letterSentResult ? 'Done' : 'Cancel'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    title="Print official letter document"
+                    onClick={() => window.print()}
+                  >
+                    🖨️ Print Letter
+                  </button>
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-p btn-sm"
+                  style={{ background: '#4338ca', borderColor: '#3730a3', minWidth: '180px' }}
+                  disabled={letterSending}
+                >
+                  {letterSending ? 'Dispatching & Saving...' : '✉️ Send Official Letter & Save to DB'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 export default ReconPage;
+
