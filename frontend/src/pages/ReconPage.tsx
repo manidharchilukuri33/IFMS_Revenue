@@ -1576,7 +1576,46 @@ export const ReconPage: React.FC = () => {
               )}
             </div>
 
-            <div className="modal-f">
+            <div className="modal-f flex justify-between items-center">
+              <div className="flex gap8">
+                {selectedRow.status !== 'Matched' && (
+                  <>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      style={{ borderColor: 'var(--navy-600, #1b4a83)', color: 'var(--navy-800, #0f2d52)', fontWeight: 600 }}
+                      onClick={() => {
+                        const r = selectedRow;
+                        setSelectedRow(null);
+                        handleOpenTrace(r);
+                      }}
+                    >
+                      🔍 Trace 3-Way Path
+                    </button>
+                    <button
+                      className="btn btn-sm btn-ok"
+                      style={{ fontWeight: 600 }}
+                      onClick={() => {
+                        const r = selectedRow;
+                        setSelectedRow(null);
+                        handleOpenSolve(r);
+                      }}
+                    >
+                      ⚡ Solve Discrepancy
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      style={{ fontWeight: 600, background: '#4338ca', color: '#ffffff', borderColor: '#3730a3' }}
+                      onClick={() => {
+                        const r = selectedRow;
+                        setSelectedRow(null);
+                        handleOpenLetter(r);
+                      }}
+                    >
+                      ✉️ Issue Discrepancy Letter
+                    </button>
+                  </>
+                )}
+              </div>
               <button className="btn btn-sm" onClick={() => setSelectedRow(null)}>
                 Close
               </button>

@@ -989,9 +989,12 @@ class ReconEngineService:
         exc_res = await self.db.execute(exc_q)
         exc = exc_res.scalars().first()
 
+        rec_date = recon.created_at.date() if recon.created_at else date.today()
+        date_token = rec_date.strftime("%Y%m%d")
+
         if not exc:
-            seq_exc = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('EXC_SEQ', 'EXC', '2026-27')"))
-            exc_no = seq_exc.scalar() or f"EXC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            seq_exc = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('EXC_SEQ', 'EXC', :dt)"), {"dt": date_token})
+            exc_no = seq_exc.scalar() or f"EXC-{date_token}-{str(recon_id).zfill(6)}"
             
             sev = "High" if (recon.amount_difference and abs(recon.amount_difference) > Decimal("10000.00")) or recon.status in ["Mismatch", "Duplicate"] else "Medium"
             
@@ -1013,9 +1016,9 @@ class ReconEngineService:
             self.db.add(exc)
             await self.db.flush()
 
-        # 2. Generate sequential Letter Number
-        seq_ltr = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('LETTER_SEQ', 'LTR-DISC', '2026-27')"))
-        letter_no = seq_ltr.scalar() or f"LTR-DISC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        # 2. Generate sequential Letter Number embedding the automated receipt date
+        seq_ltr = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('LETTER_SEQ', 'LTR-DISC', :dt)"), {"dt": date_token})
+        letter_no = seq_ltr.scalar() or f"LTR-DISC-{date_token}-{str(recon_id).zfill(6)}"
 
         # 3. Create RevExceptionLetter in PostgreSQL
         letter = RevExceptionLetter(

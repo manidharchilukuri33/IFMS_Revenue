@@ -187,11 +187,12 @@ class DevolutionService:
         variance = c_amt - computed_entitlement
 
         # Generate claim no
+        date_token = p_to.strftime("%Y%m%d") if p_to else date.today().strftime("%Y%m%d")
         seq_res = await db.execute(
             text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-            {"seq_key": "DEVOLUTION_CLAIM_SEQ", "prefix": "DEV", "fy": "2026-27"}
+            {"seq_key": "DEVOLUTION_CLAIM_SEQ", "prefix": "DEV", "fy": date_token}
         )
-        claim_no = seq_res.scalar() or f"DEV/{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        claim_no = seq_res.scalar() or f"DEV-{date_token}-{datetime.now().strftime('%H%M%S')}"
 
         claim = RevDevolutionClaim(
             claim_no=claim_no,
@@ -284,18 +285,19 @@ class DevolutionService:
         if not lb:
             raise BusinessValidationException(f"Local body {claim.local_body_id} not found")
 
+        date_token = date.today().strftime("%Y%m%d")
         # Generate bill & advice numbers
         seq_bill = await db.execute(
             text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-            {"seq_key": "REFUND_BILL_SEQ", "prefix": "DEVB", "fy": "2026-27"}
+            {"seq_key": "REFUND_BILL_SEQ", "prefix": "DEVB", "fy": date_token}
         )
-        bill_no = seq_bill.scalar()
+        bill_no = seq_bill.scalar() or f"DEVB-{date_token}-{str(claim.claim_id).zfill(6)}"
 
         seq_adv = await db.execute(
             text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-            {"seq_key": "DEVOLUTION_CLAIM_SEQ", "prefix": "ADV", "fy": "2026-27"}
+            {"seq_key": "DEVOLUTION_CLAIM_SEQ", "prefix": "ADV", "fy": date_token}
         )
-        advice_no = seq_adv.scalar()
+        advice_no = seq_adv.scalar() or f"ADV-{date_token}-{str(claim.claim_id).zfill(6)}"
 
         epay_ref = f"EPAY-DEV-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 

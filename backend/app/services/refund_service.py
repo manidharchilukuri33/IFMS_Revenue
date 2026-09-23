@@ -120,11 +120,12 @@ class RefundService:
         if req.case_no:
             case_no = req.case_no
         else:
+            date_token = (req.application_date.strftime("%Y%m%d") if req.application_date else date.today().strftime("%Y%m%d"))
             seq_res = await db.execute(
                 text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-                {"seq_key": "REFUND_CASE_SEQ", "prefix": "REF", "fy": "2026-27"}
+                {"seq_key": "REFUND_CASE_SEQ", "prefix": "REF", "fy": date_token}
             )
-            case_no = seq_res.scalar() or f"REF/2026/{datetime.now().strftime('%H%M%S')}"
+            case_no = seq_res.scalar() or f"REF-{date_token}-{datetime.now().strftime('%H%M%S')}"
 
         is_override = bool(req.override_reason)
         refundable_amt = req.claimed_amount
@@ -293,12 +294,13 @@ class RefundService:
                 case.status = "Under Verification"
 
         elif req.action == "PREPARE_BILL":
+            date_token = date.today().strftime("%Y%m%d")
             # Generate bill no
             seq_res = await db.execute(
                 text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-                {"seq_key": "REFUND_BILL_SEQ", "prefix": "RB", "fy": "2026-27"}
+                {"seq_key": "REFUND_BILL_SEQ", "prefix": "RB", "fy": date_token}
             )
-            bill_no = seq_res.scalar()
+            bill_no = seq_res.scalar() or f"RB-{date_token}-{str(case.refund_id).zfill(6)}"
 
             bill = RevRefundBill(
                 bill_no=bill_no,

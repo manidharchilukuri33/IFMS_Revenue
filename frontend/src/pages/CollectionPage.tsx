@@ -114,7 +114,10 @@ export const CollectionPage: React.FC = () => {
       const mapped: CollectionRecord[] = (txRes.items || []).map((p: any) => {
         const payDate = p.payment_date || new Date().toISOString().slice(0, 10);
         const dateToken = payDate.replace(/[^0-9]/g, '');
-        const revId = p.rev_transaction_id || p.revId || `REV-TXN-${dateToken}-${String(p.id).padStart(6, '0')}`;
+        let revId = p.rev_transaction_id || p.revId;
+        if (!revId || revId.includes('2026-27')) {
+          revId = revId ? revId.replace('2026-27', dateToken) : `REV-TXN-${dateToken}-${String(p.id).padStart(6, '0')}`;
+        }
         const rcStatus = p.reconStatus || p.reconciliation_status || (p.amount > 0 ? 'Matched' : 'Pending');
         const bStatus = p.bankStatus || (rcStatus === 'Matched' ? 'REMITTED' : 'Not Received');
         const rStatus = p.rbiStatus || (rcStatus === 'Matched' ? 'CONFIRMED' : 'Not Credited');
@@ -369,10 +372,11 @@ export const CollectionPage: React.FC = () => {
           )
         );
         showToast(`Record ${editingRecord.revId} updated and routed for checker approval.`, 'success');
-      } else {
+        const payDate = formData.payment_date || new Date().toISOString().slice(0, 10);
+        const dateToken = payDate.replace(/[^0-9]/g, '');
         const newRecord: CollectionRecord = {
           id: Date.now(),
-          revId: `REV-TXN-${String(records.length + 1).padStart(5, '0')}`,
+          revId: `REV-TXN-${dateToken}-${String(records.length + 1).padStart(6, '0')}`,
           source: formData.revenue_source,
           dept: formData.department_code,
           pao: formData.pao_code,

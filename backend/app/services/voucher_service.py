@@ -259,11 +259,17 @@ class VoucherService:
             dept_res = await db.execute(select(Department.department_id).where(Department.department_code.ilike(f"%{recon.dept_code}%")).limit(1))
             dept_id = dept_res.scalar_one_or_none()
 
+        v_date = recon.created_at.date() if recon.created_at else date.today()
+        date_token = v_date.strftime("%Y%m%d")
+        v_year = v_date.year
+        v_month = v_date.month
+        fy = f"{v_year}-{str(v_year+1)[-2:]}" if v_month >= 4 else f"{v_year-1}-{str(v_year)[-2:]}"
+
         seq_res = await db.execute(
             text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-            {"seq_key": "VOUCHER_SEQ", "prefix": "VCH", "fy": "2026-27"}
+            {"seq_key": "VOUCHER_SEQ", "prefix": "VCH", "fy": date_token}
         )
-        voucher_no = seq_res.scalar() or f"VCH-2026-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        voucher_no = seq_res.scalar() or f"VCH-{date_token}-{str(recon.recon_id).zfill(6)}"
 
         amt = recon.rbi_total or recon.portal_total or Decimal("0.00")
         narr = narration or f"Receipt voucher booked on 3-way reconciliation completion for challan {recon.challan_no}"
@@ -271,8 +277,8 @@ class VoucherService:
         vch = AccountVoucher(
             voucher_no=voucher_no,
             voucher_type="REVENUE_RECEIPT",
-            voucher_date=date.today(),
-            financial_year="2026-27",
+            voucher_date=v_date,
+            financial_year=fy,
             pao_code=recon.pao_code or "PAO21",
             amount=amt,
             debit_coa_id=dr_head_id,

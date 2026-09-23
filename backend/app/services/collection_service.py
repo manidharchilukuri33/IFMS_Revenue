@@ -97,9 +97,11 @@ class CollectionService:
         }
 
     async def create_manual_receipt(self, data: ManualCollectionCreate, user_id: int) -> RevPortalTransactionStaging:
+        date_token = data.payment_date.strftime("%Y%m%d") if data.payment_date else date.today().strftime("%Y%m%d")
+
         # Generate sequence for manual batch
-        seq_res = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('BATCH_SEQ', 'BAT-MANUAL', '2026-27')"))
-        batch_no = seq_res.scalar() or f"BAT-MAN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        seq_res = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('BATCH_SEQ', 'BAT-MANUAL', :dt)"), {"dt": date_token})
+        batch_no = seq_res.scalar() or f"BAT-MAN-{date_token}-{datetime.now().strftime('%H%M%S')}"
 
         batch = RevUploadBatch(
             batch_no=batch_no,
@@ -119,8 +121,8 @@ class CollectionService:
         self.db.add(batch)
         await self.db.flush()
 
-        item_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('TXN_SEQ', 'TXN-MAN', '2026-27')"))
-        txn_id = item_seq.scalar() or f"TXN-MAN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        item_seq = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('TXN_SEQ', 'TXN-MAN', :dt)"), {"dt": date_token})
+        txn_id = item_seq.scalar() or f"TXN-MAN-{date_token}-{datetime.now().strftime('%H%M%S')}"
 
         challan_no = data.challan_no or f"CHL-MAN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
         service_date = data.service_date or data.payment_date

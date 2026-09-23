@@ -163,18 +163,19 @@ class UploadService:
         if st_upper not in ["PORTAL", "BANK_SCROLL", "RBI_LUGGAGE"]:
             raise BusinessValidationException(f"Unsupported source type '{source_type}'.")
 
+        date_token = date.today().strftime("%Y%m%d")
         seq_res = await db.execute(
             text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-            {"seq_key": "BATCH_SEQ", "prefix": f"UPB-{st_upper[:3]}", "fy": "2026-27"}
+            {"seq_key": "BATCH_SEQ", "prefix": f"UPB-{st_upper[:3]}", "fy": date_token}
         )
-        batch_no = seq_res.scalar()
+        batch_no = seq_res.scalar() or f"UPB-{st_upper[:3]}-{date_token}-{datetime.now().strftime('%H%M%S')}"
 
         batch = RevUploadBatch(
             batch_no=batch_no,
             batch_type=st_upper,
             source_filename=file_name,
             file_size_bytes=len(csv_text.encode("utf-8")),
-            data_date=date(2026, 9, 15),
+            data_date=date.today(),
             status="PENDING_APPROVAL",
             uploaded_by=user_id,
             uploaded_at=datetime.now(),

@@ -1120,29 +1120,60 @@ export const ExceptionsPage: React.FC = () => {
               )}
             </div>
 
-            <div className="modal-f">
-              {canManage && selectedExc.status !== 'Closed' && (
-                <>
-                  <button
-                    className="btn btn-ok btn-sm"
-                    onClick={() => handleCloseException(selectedExc.id)}
-                  >
-                    Close exception
-                  </button>
-                  <button
-                    className="btn btn-p btn-sm"
-                    onClick={() => {
-                      setLetterModal(selectedExc);
-                      setSelectedExc(null);
-                    }}
-                  >
-                    Generate follow-up letter
-                  </button>
-                </>
-              )}
-              <button className="btn btn-sm" onClick={() => setSelectedExc(null)}>
-                Close
-              </button>
+            <div className="modal-f flex justify-between items-center">
+              <div className="flex gap8">
+                {selectedExc.status !== 'Closed' && (
+                  <>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      style={{ borderColor: 'var(--navy-600, #1b4a83)', color: 'var(--navy-800, #0f2d52)', fontWeight: 600 }}
+                      onClick={() => {
+                        const e = selectedExc;
+                        setSelectedExc(null);
+                        handleOpenTrace(e);
+                      }}
+                    >
+                      🔍 Trace 3-Way Path
+                    </button>
+                    <button
+                      className="btn btn-sm btn-ok"
+                      style={{ fontWeight: 600 }}
+                      onClick={() => {
+                        const e = selectedExc;
+                        setSelectedExc(null);
+                        handleOpenSolve(e);
+                      }}
+                    >
+                      ⚡ Solve Discrepancy
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="flex gap8">
+                {canManage && selectedExc.status !== 'Closed' && (
+                  <>
+                    <button
+                      className="btn btn-ok btn-sm"
+                      onClick={() => handleCloseException(selectedExc.id)}
+                    >
+                      Close exception
+                    </button>
+                    <button
+                      className="btn btn-p btn-sm"
+                      style={{ background: '#4338ca', borderColor: '#3730a3' }}
+                      onClick={() => {
+                        setLetterModal(selectedExc);
+                        setSelectedExc(null);
+                      }}
+                    >
+                      ✉️ Generate follow-up letter
+                    </button>
+                  </>
+                )}
+                <button className="btn btn-sm" onClick={() => setSelectedExc(null)}>
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

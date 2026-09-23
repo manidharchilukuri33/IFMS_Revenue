@@ -117,11 +117,11 @@ class ExceptionService:
         user_id: int
     ) -> RevExceptionLetter:
         exc = await self.db.get(RevException, exception_id)
-        if not exc:
-            raise NotFoundException("Exception", exception_id)
+        rec_date = exc.created_at.date() if exc.created_at else date.today()
+        date_token = rec_date.strftime("%Y%m%d")
 
-        seq_res = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('LETTER_SEQ', 'LTR-EXC', '2026-27')"))
-        letter_no = seq_res.scalar() or f"LTR-EXC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        seq_res = await self.db.execute(text("SELECT ifms_budget.fn_rev_next_seq('LETTER_SEQ', 'LTR-EXC', :dt)"), {"dt": date_token})
+        letter_no = seq_res.scalar() or f"LTR-EXC-{date_token}-{str(exception_id).zfill(6)}"
 
         letter = RevExceptionLetter(
             letter_no=letter_no,

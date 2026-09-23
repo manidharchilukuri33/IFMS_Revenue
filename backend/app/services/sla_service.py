@@ -114,12 +114,15 @@ class SLAService:
         if not claim:
             raise NotFoundException(f"Penal claim with ID {claim_id} not found")
 
+        rec_date = claim.created_at.date() if claim.created_at else date.today()
+        date_token = rec_date.strftime("%Y%m%d")
+
         # Generate letter number
         seq_res = await db.execute(
             text("SELECT ifms_budget.fn_rev_next_seq(:seq_key, :prefix, :fy)"),
-            {"seq_key": "PENAL_LETTER_SEQ", "prefix": "DL", "fy": "2026-27"}
+            {"seq_key": "PENAL_LETTER_SEQ", "prefix": "DL", "fy": date_token}
         )
-        letter_no = seq_res.scalar() or f"DL-SLA-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        letter_no = seq_res.scalar() or f"DL-{date_token}-{str(claim_id).zfill(6)}"
 
         content = req.letter_content or req.remarks or f"Statutory Demand Notice for Penal Interest of Rs. {claim.penal_interest_outstanding} issued to {req.recipient_name or 'Bank Nodal Branch'}."
 
