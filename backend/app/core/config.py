@@ -1,5 +1,10 @@
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+_env_file = Path(__file__).resolve().parent.parent.parent / ".env"
+load_dotenv(dotenv_path=_env_file if _env_file.exists() else None)
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "IFMS Revenue Collection & Reconciliation Module"

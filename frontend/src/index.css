@@ -558,62 +558,174 @@ table.dt tfoot td { background: var(--grey-050); font-weight: 700; border-top: 2
 }
 
 /* ==========================================================================
-   PRINT MEDIA STYLES (Prints clean official letter document ONLY)
+   PRINT MEDIA STYLES (Supports Reports & MIS print and Official Letters)
    ========================================================================== */
 @media print {
-  html, body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 11.5pt !important;
-    margin: 0 !important;
-    padding: 0 !important;
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
   }
 
-  /* Hide app navigation, sidebar, topbar, cards, buttons, overlays */
+  html, body {
+    background: #ffffff !important;
+    color: #1f2730 !important;
+    font-size: 11pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 1. Hide Global Navigation, Topbar, Alerts, and Action Elements marked no-print */
   aside,
   header,
-  nav,
+  #sidebar,
+  #header,
   .sidebar,
   .topbar,
-  .crumb,
-  .pagehead,
-  .filterbar,
-  .tbl-foot,
-  .card-h,
-  .card-b > *:not(.letter):not(.printable-letter),
-  .toast-container,
-  #toasts,
   .no-print,
-  button,
-  .btn,
-  .modal-h,
-  .modal-f,
-  .kpi,
-  .grid,
-  .legend,
-  .warnbar,
-  .errbar,
-  .okbar,
-  .modal-b > .card,
-  .fld,
-  input,
-  select,
-  textarea,
-  .box.info {
+  #toasts,
+  .toast-container,
+  .quick-action-modal,
+  .notification-modal,
+  .catalogue-search,
+  .catalogue-filter-pills,
+  .menu-toggle {
     display: none !important;
   }
 
-  .layout {
-    display: block !important;
-    margin: 0 !important;
+  /* 2. Reset Main Content Offsets and Overflow Restrictions */
+  .ml-\[250px\],
+  [class*="ml-[250px]"],
+  #main,
+  main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .min-h-screen {
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  main,
+  div,
+  section {
+    overflow: visible !important;
+  }
+
+  /* 3. Cards & Panels in Print */
+  .card {
+    background: #ffffff !important;
+    border: 1px solid var(--grey-300) !important;
+    box-shadow: none !important;
+    margin-bottom: 12px !important;
+    page-break-inside: auto;
+  }
+
+  .card-h {
+    padding: 8px 12px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid var(--grey-300) !important;
+  }
+
+  .card-h h3 {
+    font-size: 13px !important;
+    color: var(--navy-900) !important;
+  }
+
+  .card-b {
+    padding: 10px 14px !important;
+  }
+  .card-b.tight {
     padding: 0 !important;
   }
 
-  .main, .content {
-    margin: 0 !important;
-    padding: 0 !important;
+  /* 4. Filterbar & Form Inputs in Print */
+  .filterbar {
+    display: grid !important;
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 8px !important;
+    padding: 8px 12px !important;
+    background: #ffffff !important;
   }
 
+  .filterbar .fld {
+    margin-bottom: 0 !important;
+  }
+
+  .fld label {
+    font-size: 10px !important;
+    color: var(--grey-700) !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .inp, select.inp, input.inp {
+    border: 1px solid var(--grey-300) !important;
+    border-radius: 4px !important;
+    padding: 3px 6px !important;
+    font-size: 11px !important;
+    background: #ffffff !important;
+    color: var(--grey-900) !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* 5. Reports & MIS 2-Column Grid Layout */
+  .grid {
+    display: grid !important;
+    grid-template-columns: 300px minmax(0, 1fr) !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .catalogue-list {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* 6. Tables in Print */
+  .tbl-wrap {
+    overflow: visible !important;
+    border-top: 1px solid var(--grey-300) !important;
+  }
+
+  table.dt {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  table.dt th {
+    position: static !important;
+    background: var(--navy-050) !important;
+    color: var(--navy-900) !important;
+    border: 1px solid var(--grey-300) !important;
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+  }
+
+  table.dt td {
+    border: 1px solid var(--grey-200) !important;
+    padding: 5px 8px !important;
+    font-size: 10.5px !important;
+    color: var(--grey-900) !important;
+  }
+
+  table.dt tr {
+    page-break-inside: avoid !important;
+  }
+
+  /* 7. Modal Letter / Notice Printing Support */
   .ovl {
     position: static !important;
     background: transparent !important;
@@ -634,6 +746,11 @@ table.dt tfoot td { background: var(--grey-050); font-weight: 700; border-top: 2
     display: block !important;
   }
 
+  .modal-h,
+  .modal-f {
+    display: none !important;
+  }
+
   .modal-b {
     padding: 0 !important;
     max-height: none !important;
@@ -641,7 +758,6 @@ table.dt tfoot td { background: var(--grey-050); font-weight: 700; border-top: 2
     display: block !important;
   }
 
-  /* Force display and format the letter document */
   .letter,
   .printable-letter {
     display: block !important;
