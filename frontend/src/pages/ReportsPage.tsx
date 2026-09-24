@@ -32,9 +32,9 @@ export const ReportsPage: React.FC = () => {
   const [reportData, setReportData] = useState<ReportDataset | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string>('');
 
-  // Catalogue Search & Group Pill Filter
+  // Report picker: compact search-combo dropdown
   const [searchCat, setSearchCat] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Filter parameters
   const [filters, setFilters] = useState({
@@ -147,20 +147,23 @@ export const ReportsPage: React.FC = () => {
     );
   };
 
-  const reportGroups = Array.from(new Set(catalogue.map(r => r.group)));
-
-  // Filter catalogue based on search and selected group pill
+  // Filter catalogue by the picker's search box
   const filteredCatalogue = catalogue.filter(r => {
-    const matchesGroup = selectedGroup === 'ALL' || r.group.toLowerCase() === selectedGroup.toLowerCase();
     const query = searchCat.toLowerCase().trim();
-    const matchesQuery =
+    return (
       !query ||
       r.id.toLowerCase().includes(query) ||
       r.name.toLowerCase().includes(query) ||
       r.desc.toLowerCase().includes(query) ||
-      r.group.toLowerCase().includes(query);
-    return matchesGroup && matchesQuery;
+      r.group.toLowerCase().includes(query)
+    );
   });
+
+  const selectReport = (id: string) => {
+    setActiveReportId(id);
+    setPickerOpen(false);
+    setSearchCat('');
+  };
 
   const filteredGroups = Array.from(new Set(filteredCatalogue.map(r => r.group)));
 
@@ -286,111 +289,87 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2-Column Master-Detail: Catalogue Sidebar (Left) vs Interactive Report Display (Right) */}
-      <div className="grid" style={{ gridTemplateColumns: '300px minmax(0, 1fr)' }}>
-        
-        {/* Left: Report Catalogue */}
+      {/* Report Picker: compact search-combo dropdown (replaces the old fixed sidebar list) */}
+      <div className="report-picker-wrap">
+        <button
+          type="button"
+          className="report-picker-combo"
+          onClick={() => setPickerOpen(o => !o)}
+        >
+          <span aria-hidden="true">🔍</span>
+          <span className="report-picker-combo-label">
+            {activeRep.id.toUpperCase()} &middot; {activeRep.name}
+          </span>
+          <span className="report-picker-caret" aria-hidden="true">{pickerOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {pickerOpen && (
+          <>
+            <div className="report-picker-backdrop" onClick={() => setPickerOpen(false)} />
+            <div className="report-picker-dropdown">
+              <div className="catalogue-search" style={{ background: 'var(--white)' }}>
+                <input
+                  type="text"
+                  className="catalogue-search-inp"
+                  placeholder="Search reports (e.g. R01, Bank, Tax)..."
+                  value={searchCat}
+                  onChange={e => setSearchCat(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="catalogue-list" style={{ maxHeight: '360px' }}>
+                {filteredCatalogue.length === 0 ? (
+                  <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--grey-500)', fontSize: '12px' }}>
+                    No reports match &ldquo;{searchCat}&rdquo;
+                  </div>
+                ) : (
+                  filteredGroups.map(g => (
+                    <div key={g} style={{ marginBottom: '8px' }}>
+                      <div className="catalogue-group-heading">
+                        <span>{g}</span>
+                        <span className="catalogue-group-count">
+                          {filteredCatalogue.filter(r => r.group === g).length}
+                        </span>
+                      </div>
+                      {filteredCatalogue
+                        .filter(r => r.group === g)
+                        .map(r => {
+                          const isActive = r.id === activeReportId;
+                          return (
+                            <div
+                              key={r.id}
+                              className={`catalogue-item ${isActive ? 'active' : ''}`}
+                              onClick={() => selectReport(r.id)}
+                            >
+                              <div className="catalogue-item-header">
+                                <span className="report-code-badge">{r.id.toUpperCase()}</span>
+                                {isActive && (
+                                  <span style={{ fontSize: '11px', color: 'var(--teal-600)', fontWeight: 700 }}>
+                                    Active ▶
+                                  </span>
+                                )}
+                              </div>
+                              <div className="catalogue-item-title">{r.name}</div>
+                              <div className="catalogue-item-desc">{r.desc}</div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Dedicated Report Viewer Panel */}
+      <div>
         <div className="card">
           <div className="card-h">
-            <h3>Report catalogue</h3>
-          </div>
-
-          {/* Quick Search Input (interactive only, hidden on print) */}
-          <div className="catalogue-search no-print" style={{ padding: '8px 12px', borderBottom: '1px solid var(--grey-200)' }}>
-            <input
-              type="text"
-              className="inp"
-              placeholder="Search reports (e.g. R01, Bank, Tax)..."
-              value={searchCat}
-              onChange={e => setSearchCat(e.target.value)}
-            />
-          </div>
-
-          {/* Category Group Filter Pills (interactive only, hidden on print) */}
-          <div className="catalogue-filter-pills no-print" style={{ padding: '6px 12px', display: 'flex', flexWrap: 'wrap', gap: '4px', borderBottom: '1px solid var(--grey-200)' }}>
-            <button
-              className={`cat-pill ${selectedGroup === 'ALL' ? 'active' : ''}`}
-              onClick={() => setSelectedGroup('ALL')}
-            >
-              All ({catalogue.length})
-            </button>
-            {reportGroups.map(g => {
-              const count = catalogue.filter(r => r.group === g).length;
-              return (
-                <button
-                  key={g}
-                  className={`cat-pill ${selectedGroup === g ? 'active' : ''}`}
-                  onClick={() => setSelectedGroup(g)}
-                >
-                  {g} ({count})
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Catalogue List */}
-          <div className="card-b tight catalogue-list">
-            {filteredCatalogue.length === 0 ? (
-              <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--grey-500)', fontSize: '12px' }}>
-                No reports match &ldquo;{searchCat}&rdquo;
-              </div>
-            ) : (
-              filteredGroups.map(g => (
-                <div key={g}>
-                  <div
-                    className="nav-sec"
-                    style={{
-                      color: 'var(--grey-600)',
-                      background: 'var(--grey-050)',
-                      padding: '6px 12px',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      letterSpacing: '0.6px',
-                      textTransform: 'uppercase',
-                      borderBottom: '1px solid var(--grey-200)',
-                    }}
-                  >
-                    {g}
-                  </div>
-                  {filteredCatalogue
-                    .filter(r => r.group === g)
-                    .map(r => {
-                      const isActive = r.id === activeReportId;
-                      return (
-                        <div
-                          key={r.id}
-                          style={{
-                            padding: '7px 12px',
-                            borderBottom: '1px solid var(--grey-200)',
-                            cursor: 'pointer',
-                            background: isActive ? 'var(--navy-050)' : '#fff',
-                            borderLeft: isActive ? '3px solid var(--teal-600)' : '3px solid transparent',
-                            fontWeight: isActive ? 600 : 'normal',
-                          }}
-                          onClick={() => setActiveReportId(r.id)}
-                        >
-                          <div style={{ fontSize: '12px', color: isActive ? 'var(--navy-900)' : 'inherit', fontWeight: isActive ? 700 : 600 }}>
-                            {r.name}
-                          </div>
-                          <div className="tiny muted" style={{ fontSize: '11px', color: 'var(--grey-600)', marginTop: '2px' }}>
-                            {r.desc}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Right: Dedicated Report Viewer Panel */}
-        <div>
-          <div className="card">
-            <div className="card-h">
-              <div>
-                <h3>{reportData?.report_name || activeRep.name}</h3>
-                <div className="sub">{reportData?.description || activeRep.desc}</div>
+            <div>
+              <h3>{reportData?.report_name || activeRep.name}</h3>
+              <div className="sub">{reportData?.description || activeRep.desc}</div>
               </div>
               <div className="no-print flex items-center gap8">
                 {loading && <span className="badge b-amber">Querying Database...</span>}
@@ -500,7 +479,6 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
 
-      </div>
     </div>
   );
 };
