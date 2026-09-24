@@ -17,6 +17,12 @@ import {
   SuspenseItem,
   ReportMetadata,
   ReportDataset,
+  Department,
+  Pao,
+  Ddo,
+  TreasuryBranch,
+  ReceiptHead,
+  ReconciliationRule,
   AgencyBank,
   AgencyBankBranch,
   RevenuePortal,
@@ -650,69 +656,263 @@ class ApiClient {
   }
 
   // 13. Masters
-  async getAgencyBanks() {
-    return this.request<AgencyBank[]>('/masters/banks');
+  // Departments
+  async getDepartments(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<Department[]>(`/masters/departments${q}`);
   }
 
-  async getAgencyBankBranches(bankId?: number) {
-    const q = bankId ? `?bank_id=${bankId}` : '';
-    return this.request<AgencyBankBranch[]>(`/masters/branches${q}`);
+  async createDepartment(payload: { department_code: string; department_name: string; department_type?: string; is_active?: boolean }) {
+    return this.request<Department>('/masters/departments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
-  async getRevenuePortals() {
-    return this.request<RevenuePortal[]>('/masters/portals');
+  async updateDepartment(deptId: number, payload: Partial<Department>) {
+    return this.request<Department>(`/masters/departments/${deptId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
   }
 
-  async getRevenueSources() {
-    return this.request<RevenueSource[]>('/masters/sources');
+  // PAOs
+  async getPaos(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<Pao[]>(`/masters/paos${q}`);
   }
 
-  async getPaos() {
-    return this.request<any[]>('/masters/paos').catch(() => [
-      { code: 'PAO21', name: 'PAO-21 Trade & Taxes', dept: 'TT' },
-      { code: 'PAO10', name: 'PAO-10 Excise', dept: 'EXCISE' },
-      { code: 'PAO11', name: 'PAO-11 Transport', dept: 'TRANSPORT' },
-      { code: 'PAO12', name: 'PAO-12 Stamps & Registration', dept: 'STAMPREG' },
-      { code: 'PAO06', name: 'PAO-06 DVAT', dept: 'DVAT' },
-      { code: 'PAO15', name: 'PAO-15 General / Non-Tax', dept: 'GAD' },
-    ]);
+  async createPao(payload: { pao_code: string; pao_name: string; dept_code?: string; treasury_code?: string; is_active?: boolean }) {
+    return this.request<Pao>('/masters/paos', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
-  async getReceiptHeads() {
-    return this.request<any[]>('/masters/heads').catch(() => [
-      { code: '0040-00-102-01-00-01', major: '0040', desc: 'SGST Receipts', source: 'GST' },
-      { code: '0039-00-105-01-00-01', major: '0039', desc: 'State Excise Licence Fee', source: 'EXCISE' },
-      { code: '0041-00-101-01-00-01', major: '0041', desc: 'Vehicle Registration Fee', source: 'TRANSPORT' },
-      { code: '0030-00-102-01-00-01', major: '0030', desc: 'Non-Judicial Stamp Duty', source: 'STAMP' },
-      { code: '0030-00-103-01-00-01', major: '0030', desc: 'Judicial Stamps (Court Fees)', source: 'STAMP' },
-      { code: '0040-00-101-01-00-01', major: '0040', desc: 'DVAT / Sales Tax Receipts', source: 'DVAT' },
-      { code: '0070-60-800-01-00-01', major: '0070', desc: 'Other Non-Tax Service Fees', source: 'NONTAX' },
-    ]);
+  async updatePao(paoId: number, payload: Partial<Pao>) {
+    return this.request<Pao>(`/masters/paos/${paoId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
   }
 
-  async getReconciliationRules() {
-    return this.request<any[]>('/masters/rules').catch(() => [
-      { id: 'RR-01', rule_code: 'RR-01', priority: 1, primary: 'REVENUE_SOURCE + CIN', outcome_status: 'Matched', matching_mode: 'THREE_WAY_EXACT' },
-      { id: 'RR-02', rule_code: 'RR-02', priority: 2, primary: 'CHALLAN_NO / CIN group', outcome_status: 'Matched (One-to-Many)', matching_mode: 'ONE_TO_MANY' },
-      { id: 'RR-03', rule_code: 'RR-03', priority: 3, primary: 'PORTAL present, RBI absent', outcome_status: 'Suspend', matching_mode: 'SLA_AGEING' },
-      { id: 'RR-04', rule_code: 'RR-04', priority: 4, primary: 'RBI / bank present, portal absent', outcome_status: 'RAT', matching_mode: 'ORPHAN_CREDIT' },
-      { id: 'RR-05', rule_code: 'RR-05', priority: 5, primary: 'Repeated unique source reference', outcome_status: 'Duplicate', matching_mode: 'DUPLICATE_SCAN' },
-      { id: 'RR-06', rule_code: 'RR-06', priority: 6, primary: 'Matched keys, amount variance', outcome_status: 'Mismatch', matching_mode: 'AMOUNT_VARIANCE' },
-    ]);
+  // DDOs
+  async getDdos(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<Ddo[]>(`/masters/ddos${q}`);
   }
 
-  async getSlaRules() {
-    return this.request<SlaRule[]>('/masters/sla-rules');
+  async createDdo(payload: { ddo_code: string; ddo_name: string; department_id?: number; ddo_type?: string; treasury_code?: string; is_active?: boolean }) {
+    return this.request<Ddo>('/masters/ddos', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
-  async getLocalBodies() {
-    return this.request<LocalBody[]>('/masters/local-bodies');
+  async updateDdo(ddoId: number, payload: Partial<Ddo>) {
+    return this.request<Ddo>(`/masters/ddos/${ddoId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
   }
 
-  async getDevolutionRules() {
-    return this.request<DevolutionRule[]>('/masters/devolution-rules');
+  // Treasuries / Branches
+  async getTreasuries(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<TreasuryBranch[]>(`/masters/treasuries${q}`);
   }
 
+  async createTreasury(payload: { branch_code: string; branch_name: string; branch_type?: string; treasury_code?: string; city?: string; is_active?: boolean }) {
+    return this.request<TreasuryBranch>('/masters/treasuries', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateTreasury(branchId: number, payload: Partial<TreasuryBranch>) {
+    return this.request<TreasuryBranch>(`/masters/treasuries/${branchId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Banks
+  async getAgencyBanks(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<AgencyBank[]>(`/masters/banks${q}`);
+  }
+
+  async createAgencyBank(payload: any) {
+    return this.request<AgencyBank>('/masters/banks', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateAgencyBank(bankId: number, payload: any) {
+    return this.request<AgencyBank>(`/masters/banks/${bankId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Bank Branches
+  async getAgencyBankBranches(bankId?: number, isActive?: boolean) {
+    const qp = new URLSearchParams();
+    if (bankId) qp.append('bank_id', String(bankId));
+    if (isActive !== undefined) qp.append('is_active', String(isActive));
+    const qs = qp.toString() ? `?${qp.toString()}` : '';
+    return this.request<AgencyBankBranch[]>(`/masters/branches${qs}`);
+  }
+
+  async createAgencyBankBranch(payload: any) {
+    return this.request<AgencyBankBranch>('/masters/branches', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateAgencyBankBranch(branchId: number, payload: any) {
+    return this.request<AgencyBankBranch>(`/masters/branches/${branchId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Portals
+  async getRevenuePortals(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<RevenuePortal[]>(`/masters/portals${q}`);
+  }
+
+  async createRevenuePortal(payload: any) {
+    return this.request<RevenuePortal>('/masters/portals', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateRevenuePortal(portalId: number, payload: any) {
+    return this.request<RevenuePortal>(`/masters/portals/${portalId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Revenue Sources
+  async getRevenueSources(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<RevenueSource[]>(`/masters/sources${q}`);
+  }
+
+  async createRevenueSource(payload: any) {
+    return this.request<RevenueSource>('/masters/sources', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateRevenueSource(sourceId: number, payload: any) {
+    return this.request<RevenueSource>(`/masters/sources/${sourceId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Local Bodies
+  async getLocalBodies(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<LocalBody[]>(`/masters/local-bodies${q}`);
+  }
+
+  async createLocalBody(payload: any) {
+    return this.request<LocalBody>('/masters/local-bodies', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateLocalBody(bodyId: number, payload: any) {
+    return this.request<LocalBody>(`/masters/local-bodies/${bodyId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Chart of Accounts / Receipt Heads
+  async getReceiptHeads(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<ReceiptHead[]>(`/masters/heads${q}`);
+  }
+
+  async createReceiptHead(payload: any) {
+    return this.request<ReceiptHead>('/masters/heads', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateReceiptHead(coaId: number, payload: any) {
+    return this.request<ReceiptHead>(`/masters/heads/${coaId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Reconciliation Rules
+  async getReconciliationRules(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<ReconciliationRule[]>(`/masters/rules${q}`);
+  }
+
+  async createReconciliationRule(payload: any) {
+    return this.request<ReconciliationRule>('/masters/rules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateReconciliationRule(ruleId: number, payload: any) {
+    return this.request<ReconciliationRule>(`/masters/rules/${ruleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // SLA Rules
+  async getSlaRules(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<SlaRule[]>(`/masters/sla-rules${q}`);
+  }
+
+  async createSlaRule(payload: any) {
+    return this.request<SlaRule>('/masters/sla-rules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateSlaRule(ruleId: number, payload: any) {
+    return this.request<SlaRule>(`/masters/sla-rules/${ruleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Devolution Rules
+  async getDevolutionRules(isActive?: boolean) {
+    const q = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<DevolutionRule[]>(`/masters/devolution-rules${q}`);
+  }
+
+  async createDevolutionRule(payload: any) {
+    return this.request<DevolutionRule>('/masters/devolution-rules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // System Configuration
   async getSystemConfig() {
     return this.request<SystemConfig>('/masters/config');
   }

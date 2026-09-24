@@ -27,11 +27,87 @@ export interface Department {
   department_id: number;
   department_code: string;
   department_name: string;
+  department_type?: string;
+  is_active?: boolean;
   organization_id?: number;
   org_branch_id?: number;
   created_by?: number;
   updated_by?: number;
   workflow_status?: string;
+}
+
+export interface Pao {
+  pao_id?: number;
+  id?: number;
+  pao_code: string;
+  pao_name: string;
+  dept_code?: string;
+  department_id?: number;
+  department_code?: string;
+  treasury_code?: string;
+  is_active: boolean;
+}
+
+export interface Ddo {
+  ddo_id: number;
+  ddo_code: string;
+  ddo_name: string;
+  department_id?: number;
+  department_code?: string;
+  department_name?: string;
+  ddo_type?: string;
+  treasury_code?: string;
+  is_active: boolean;
+}
+
+export interface TreasuryBranch {
+  branch_id: number;
+  branch_code: string;
+  branch_name: string;
+  branch_type?: string;
+  treasury_code?: string;
+  city?: string;
+  is_active: boolean;
+}
+
+export interface ReceiptHead {
+  coa_id?: number;
+  id?: number;
+  coa_code?: string;
+  code?: string;
+  head_code?: string;
+  coa_name?: string;
+  name?: string;
+  description?: string;
+  desc?: string;
+  major_head_id?: number;
+  major_head?: string;
+  major?: string;
+  sub_major_head_id?: number;
+  submajor_head?: string;
+  submajor?: string;
+  minor_head_id?: number;
+  minor_head?: string;
+  minor?: string;
+  account_nature?: string;
+  source_code?: string;
+  source?: string;
+  is_active: boolean;
+}
+
+export interface ReconciliationRule {
+  rule_id?: number;
+  id?: number | string;
+  rule_code: string;
+  rule_name?: string;
+  priority: number;
+  matching_mode: string;
+  primary_match_keys?: string;
+  primary?: string;
+  amount_tolerance?: number;
+  date_tolerance_days?: number;
+  outcome_status: string;
+  is_active: boolean;
 }
 
 export interface AgencyBank {

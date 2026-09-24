@@ -207,3 +207,94 @@ BankBranchCreate = BranchCreate
 DeptPortalCreate = PortalCreate
 RevenueSourceCreate = SourceCreate
 SLARuleCreate = SlaRuleCreate
+
+# Department Schemas
+class DepartmentCreate(BaseModel):
+    department_code: str
+    department_name: str
+    department_type: Optional[str] = "DEPARTMENT"
+    head_of_department: Optional[str] = None
+    is_active: bool = True
+
+class DepartmentUpdate(BaseModel):
+    department_code: Optional[str] = None
+    department_name: Optional[str] = None
+    department_type: Optional[str] = None
+    head_of_department: Optional[str] = None
+    is_active: Optional[bool] = None
+
+# DDO Schemas
+class DdoCreate(BaseModel):
+    ddo_code: str
+    ddo_name: str
+    department_id: Optional[int] = 1
+    dept_code: Optional[str] = None
+    treasury_code: Optional[str] = "TRY-DELHI"
+    ddo_type: Optional[str] = "REGULAR"
+    is_active: bool = True
+
+class DdoUpdate(BaseModel):
+    ddo_name: Optional[str] = None
+    department_id: Optional[int] = None
+    treasury_code: Optional[str] = None
+    ddo_type: Optional[str] = None
+    is_active: Optional[bool] = None
+
+# Treasury Schemas
+class TreasuryCreate(BaseModel):
+    branch_code: str
+    branch_name: str
+    branch_type: Optional[str] = "TREASURY"
+    treasury_code: Optional[str] = None
+    city: Optional[str] = "Delhi"
+    is_active: bool = True
+
+class TreasuryUpdate(BaseModel):
+    branch_name: Optional[str] = None
+    branch_type: Optional[str] = None
+    treasury_code: Optional[str] = None
+    city: Optional[str] = None
+    is_active: Optional[bool] = None
+
+# PAO Schemas
+class PaoCreate(BaseModel):
+    pao_code: str
+    pao_name: str
+    dept_code: Optional[str] = None
+    treasury_code: Optional[str] = "TRY-DELHI"
+    is_active: bool = True
+
+class PaoUpdate(BaseModel):
+    pao_name: Optional[str] = None
+    dept_code: Optional[str] = None
+    treasury_code: Optional[str] = None
+    is_active: Optional[bool] = None
+
+# Recon Rule Schemas
+class ReconRuleCreate(BaseModel):
+    rule_code: str
+    rule_name: str
+    priority: int = 1
+    primary_match_keys: str
+    amount_tolerance: Decimal = Decimal("0.01")
+    date_tolerance_days: int = 2
+    matching_mode: str = "THREE_WAY_EXACT"
+    outcome_status: str = "Matched"
+    is_active: bool = True
+
+class ReconRuleUpdate(BaseModel):
+    rule_name: Optional[str] = None
+    priority: Optional[int] = None
+    primary_match_keys: Optional[str] = None
+    amount_tolerance: Optional[Decimal] = None
+    date_tolerance_days: Optional[int] = None
+    matching_mode: Optional[str] = None
+    outcome_status: Optional[str] = None
+    is_active: Optional[bool] = None
+
+# Generic Update Schemas
+class GeneralMasterUpdate(BaseModel):
+    name: Optional[str] = None
+    desc: Optional[str] = None
+    is_active: Optional[bool] = None
+    extra: Optional[dict] = None
