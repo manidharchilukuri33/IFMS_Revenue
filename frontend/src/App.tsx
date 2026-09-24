@@ -72,12 +72,12 @@ export const App: React.FC = () => {
       <Sidebar />
 
       {/* Main Content Area with Left Margin 250px */}
-      <div className="flex-1 flex flex-col min-w-0 ml-[250px] min-h-screen">
+      <div id="main" className="flex-1 flex flex-col min-w-0 ml-[250px] min-h-screen">
         {/* Top Header Fixed */}
         <Header />
 
         {/* Page Content */}
-        <main className="flex-1 p-[16px_18px_48px] overflow-y-auto">
+        <main id="content" className="flex-1 p-[16px_18px_48px] overflow-y-auto">
           {renderActivePage()}
         </main>
       </div>

@@ -178,10 +178,10 @@ export const ReportsPage: React.FC = () => {
         <div>
           <h2>Reports &amp; MIS</h2>
           <div className="sub">
-            Seventeen operational and governance reports dynamically querying PostgreSQL schema with real-time parameters, live totals, and CSV export.
+            Seventeen operational and governance reports, each with date, source, department, PAO and bank parameters, generation metadata and CSV export.
           </div>
         </div>
-        <div className="flex gap8">
+        <div className="btn-group no-print flex gap8">
           <button className="btn btn-sm" onClick={() => window.print()}>
             🖨️ Print report
           </button>
@@ -193,21 +193,18 @@ export const ReportsPage: React.FC = () => {
 
       {/* Parameters Filter Toolbar Card */}
       <div className="card mb12">
-        <div className="card-h" style={{ padding: '8px 14px' }}>
-          <div className="flex items-center gap8">
-            <span style={{ fontSize: '14px' }}>⚙️</span>
-            <div>
-              <h3 style={{ fontSize: '12.5px' }}>Report Parameters</h3>
-              <div className="sub" style={{ fontSize: '11px' }}>Filter live database records across all catalogue reports</div>
-            </div>
+        <div className="card-h">
+          <div>
+            <h3>Report parameters</h3>
+            <div className="sub">Parameters apply to every report in the catalogue</div>
           </div>
           <button className="btn btn-sm" onClick={handleClearParameters}>
             Clear parameters
           </button>
         </div>
 
-        <div className="filterbar" style={{ padding: '8px 14px', gap: '8px' }}>
-          <div className="fld" style={{ marginBottom: 0 }}>
+        <div className="filterbar">
+          <div className="fld">
             <label>Date from</label>
             <input
               type="date"
@@ -216,7 +213,7 @@ export const ReportsPage: React.FC = () => {
               onChange={e => setFilters({ ...filters, from: e.target.value })}
             />
           </div>
-          <div className="fld" style={{ marginBottom: 0 }}>
+          <div className="fld">
             <label>Date to</label>
             <input
               type="date"
@@ -225,7 +222,7 @@ export const ReportsPage: React.FC = () => {
               onChange={e => setFilters({ ...filters, to: e.target.value })}
             />
           </div>
-          <div className="fld" style={{ marginBottom: 0 }}>
+          <div className="fld">
             <label>Revenue source</label>
             <select
               className="inp"
@@ -240,7 +237,7 @@ export const ReportsPage: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="fld" style={{ marginBottom: 0 }}>
+          <div className="fld">
             <label>Department</label>
             <select
               className="inp"
@@ -256,7 +253,7 @@ export const ReportsPage: React.FC = () => {
               <option value="GAD">General Admin Dept (GAD)</option>
             </select>
           </div>
-          <div className="fld" style={{ marginBottom: 0 }}>
+          <div className="fld">
             <label>PAO</label>
             <select
               className="inp"
@@ -271,7 +268,7 @@ export const ReportsPage: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="fld" style={{ marginBottom: 0 }}>
+          <div className="fld">
             <label>Bank</label>
             <select
               className="inp"
@@ -290,41 +287,27 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* 2-Column Master-Detail: Catalogue Sidebar (Left) vs Interactive Report Display (Right) */}
-      <div className="grid" style={{ gridTemplateColumns: '320px minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
+      <div className="grid" style={{ gridTemplateColumns: '300px minmax(0, 1fr)' }}>
         
-        {/* Left: Distinct IFMS Themed Report Catalogue */}
-        <div className="catalogue-panel">
-          <div className="catalogue-header">
-            <h3>
-              <span>📑</span> Report Catalogue
-            </h3>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                background: 'rgba(255, 255, 255, 0.18)',
-                color: '#ffffff',
-                padding: '2px 7px',
-                borderRadius: '10px',
-              }}
-            >
-              {filteredCatalogue.length} / {catalogue.length} Reports
-            </span>
+        {/* Left: Report Catalogue */}
+        <div className="card">
+          <div className="card-h">
+            <h3>Report catalogue</h3>
           </div>
 
-          {/* Quick Search Input */}
-          <div className="catalogue-search">
+          {/* Quick Search Input (interactive only, hidden on print) */}
+          <div className="catalogue-search no-print" style={{ padding: '8px 12px', borderBottom: '1px solid var(--grey-200)' }}>
             <input
               type="text"
-              className="catalogue-search-inp"
+              className="inp"
               placeholder="Search reports (e.g. R01, Bank, Tax)..."
               value={searchCat}
               onChange={e => setSearchCat(e.target.value)}
             />
           </div>
 
-          {/* Category Group Filter Pills */}
-          <div className="catalogue-filter-pills">
+          {/* Category Group Filter Pills (interactive only, hidden on print) */}
+          <div className="catalogue-filter-pills no-print" style={{ padding: '6px 12px', display: 'flex', flexWrap: 'wrap', gap: '4px', borderBottom: '1px solid var(--grey-200)' }}>
             <button
               className={`cat-pill ${selectedGroup === 'ALL' ? 'active' : ''}`}
               onClick={() => setSelectedGroup('ALL')}
@@ -345,20 +328,29 @@ export const ReportsPage: React.FC = () => {
             })}
           </div>
 
-          {/* Scrollable Report Items with Sleek Custom Scrollbar */}
-          <div className="catalogue-list">
+          {/* Catalogue List */}
+          <div className="card-b tight catalogue-list">
             {filteredCatalogue.length === 0 ? (
               <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--grey-500)', fontSize: '12px' }}>
                 No reports match &ldquo;{searchCat}&rdquo;
               </div>
             ) : (
               filteredGroups.map(g => (
-                <div key={g} style={{ marginBottom: '8px' }}>
-                  <div className="catalogue-group-heading">
-                    <span>{g}</span>
-                    <span className="muted" style={{ fontSize: '10px' }}>
-                      {filteredCatalogue.filter(r => r.group === g).length}
-                    </span>
+                <div key={g}>
+                  <div
+                    className="nav-sec"
+                    style={{
+                      color: 'var(--grey-600)',
+                      background: 'var(--grey-050)',
+                      padding: '6px 12px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      letterSpacing: '0.6px',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid var(--grey-200)',
+                    }}
+                  >
+                    {g}
                   </div>
                   {filteredCatalogue
                     .filter(r => r.group === g)
@@ -367,19 +359,22 @@ export const ReportsPage: React.FC = () => {
                       return (
                         <div
                           key={r.id}
-                          className={`catalogue-item ${isActive ? 'active' : ''}`}
+                          style={{
+                            padding: '7px 12px',
+                            borderBottom: '1px solid var(--grey-200)',
+                            cursor: 'pointer',
+                            background: isActive ? 'var(--navy-050)' : '#fff',
+                            borderLeft: isActive ? '3px solid var(--teal-600)' : '3px solid transparent',
+                            fontWeight: isActive ? 600 : 'normal',
+                          }}
                           onClick={() => setActiveReportId(r.id)}
                         >
-                          <div className="catalogue-item-header">
-                            <span className="report-code-badge">{r.id.toUpperCase()}</span>
-                            {isActive && (
-                              <span style={{ fontSize: '11px', color: 'var(--teal-600)', fontWeight: 700 }}>
-                                Active ▶
-                              </span>
-                            )}
+                          <div style={{ fontSize: '12px', color: isActive ? 'var(--navy-900)' : 'inherit', fontWeight: isActive ? 700 : 600 }}>
+                            {r.name}
                           </div>
-                          <div className="catalogue-item-title">{r.name}</div>
-                          <div className="catalogue-item-desc">{r.desc}</div>
+                          <div className="tiny muted" style={{ fontSize: '11px', color: 'var(--grey-600)', marginTop: '2px' }}>
+                            {r.desc}
+                          </div>
                         </div>
                       );
                     })}
@@ -390,130 +385,118 @@ export const ReportsPage: React.FC = () => {
         </div>
 
         {/* Right: Dedicated Report Viewer Panel */}
-        <div className="report-viewer-panel">
-          {/* Header Banner */}
-          <div className="report-viewer-header">
-            <div>
-              <div className="flex items-center gap8">
-                <span className="badge b-blue" style={{ fontSize: '11px', fontWeight: 700 }}>
-                  {activeRep.id.toUpperCase()}
-                </span>
-                <span className="badge b-grey" style={{ fontSize: '11px' }}>
-                  {activeRep.group}
-                </span>
-                <h3 style={{ fontSize: '15px', color: 'var(--navy-900)', margin: 0 }}>
-                  {reportData?.report_name || activeRep.name}
-                </h3>
+        <div>
+          <div className="card">
+            <div className="card-h">
+              <div>
+                <h3>{reportData?.report_name || activeRep.name}</h3>
+                <div className="sub">{reportData?.description || activeRep.desc}</div>
               </div>
-              <div className="sub mt4" style={{ fontSize: '12px', color: 'var(--grey-600)' }}>
-                {reportData?.description || activeRep.desc}
+              <div className="no-print flex items-center gap8">
+                {loading && <span className="badge b-amber">Querying Database...</span>}
+                <button className="btn btn-sm" onClick={fetchReport} title="Refresh report from live database">
+                  🔄 Refresh
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap8">
-              {loading && <span className="badge b-amber">Querying Database...</span>}
-              <button className="btn btn-sm" onClick={fetchReport} title="Refresh report from live database">
-                🔄 Refresh
-              </button>
+            <div className="card-b">
+              <dl className="kv" style={{ gridTemplateColumns: '150px 1fr' }}>
+                <dt>Report parameters</dt>
+                <dd className="small">
+                  {[
+                    'Date ' + (filters.from ? fmtDate(filters.from) : 'all') + ' to ' + (filters.to ? fmtDate(filters.to) : 'all'),
+                    'Source: ' + (filters.source || 'All'),
+                    'Department: ' + (filters.dept || 'All'),
+                    'PAO: ' + (filters.pao || 'All'),
+                    'Bank: ' + (filters.bank || 'All'),
+                  ].join(' · ')}
+                </dd>
+                <dt>Generated on</dt>
+                <dd>{generatedAt || new Date().toLocaleString()}</dd>
+                <dt>Generated by</dt>
+                <dd>
+                  {userRole === 'PAO_MAKER'
+                    ? 'pao21.maker (PAO Maker)'
+                    : `${userRole} User`}
+                </dd>
+                <dt>Demo business date</dt>
+                <dd>15-Sep-2026 · financial year 2026-27</dd>
+                <dt>Record count</dt>
+                <dd className="strong">{cnt(rows.length)}</dd>
+                <dt>Monetary total</dt>
+                <dd className="strong">
+                  {moneyCols.length > 0 ? money(monetaryTotal) : <span className="muted">Not applicable</span>}
+                </dd>
+              </dl>
             </div>
-          </div>
 
-          {/* Meta & Filter Summary Strip */}
-          <div className="report-meta-strip">
-            <div className="report-meta-item">
-              <span className="report-meta-label">📅 Date Range:</span>
-              <span className="report-meta-val">
-                {filters.from ? fmtDate(filters.from) : 'All'} &rarr; {filters.to ? fmtDate(filters.to) : 'All'}
-              </span>
-            </div>
-            <div className="report-meta-item">
-              <span className="report-meta-label">🏛️ Scope:</span>
-              <span className="report-meta-val">
-                {filters.source || filters.dept || filters.pao || filters.bank
-                  ? [filters.source, filters.dept, filters.pao, filters.bank].filter(Boolean).join(' / ')
-                  : 'All Sources & Entities'}
-              </span>
-            </div>
-            <div className="report-meta-item">
-              <span className="report-meta-label">📊 Records:</span>
-              <span className="report-meta-val strong">{cnt(rows.length)}</span>
-            </div>
-            <div className="report-meta-item">
-              <span className="report-meta-label">💰 Monetary Total:</span>
-              <span className="report-meta-val strong" style={{ color: 'var(--teal-700)' }}>
-                {moneyCols.length > 0 ? money(monetaryTotal) : 'N/A'}
-              </span>
-            </div>
-            <div className="report-meta-item" style={{ marginLeft: 'auto' }}>
-              <span className="report-meta-label">⚡ Database:</span>
-              <span className="report-meta-val" style={{ fontSize: '11px', color: 'var(--grey-600)' }}>
-                ifms_budget (Live)
-              </span>
-            </div>
-          </div>
-
-          {/* Dynamic Data Table with Sticky Headers & Sleek Scrollbar */}
-          <div className="report-table-container">
-            <table>
-              <thead>
-                <tr>
-                  {headers.map((h, idx) => (
-                    <th key={idx} className={moneyCols.includes(idx) ? 'num' : ''}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+            <div className="tbl-wrap">
+              <table className="dt" id="rpTable">
+                <thead>
                   <tr>
-                    <td colSpan={Math.max(headers.length, 1)}>
-                      <div className="empty" style={{ padding: '40px 16px', textAlign: 'center' }}>
-                        ⏳ Querying live PostgreSQL tables for {activeRep.name}...
-                      </div>
-                    </td>
+                    {headers.map((h, idx) => (
+                      <th key={idx} className={moneyCols.includes(idx) ? 'num' : ''}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ) : rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={Math.max(headers.length, 1)}>
-                      <div className="empty" style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--grey-500)' }}>
-                        🔍 No records match the selected report parameters in the database.
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  rows.map((row, rIdx) => {
-                    const isTotal = String(row[0]) === 'TOTAL';
-                    return (
-                      <tr
-                        key={rIdx}
-                        className={isTotal ? 'total-row' : ''}
-                        style={
-                          isTotal
-                            ? { fontWeight: 700, background: '#eef2f7', borderTop: '2px solid var(--navy-500)' }
-                            : undefined
-                        }
-                      >
-                        {row.map((cell, cIdx) => {
-                          const isMoney = moneyCols.includes(cIdx);
-                          return (
-                            <td key={cIdx} className={isMoney ? 'num mono' : ''}>
-                              {isMoney
-                                ? typeof cell === 'number'
-                                  ? money(cell)
-                                  : money(Number(cell) || 0)
-                                : cell === '' || cell === null || cell === undefined
-                                ? '—'
-                                : String(cell)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={Math.max(headers.length, 1)}>
+                        <div className="empty" style={{ padding: '34px 14px', textAlign: 'center' }}>
+                          ⏳ Querying live PostgreSQL tables for {activeRep.name}...
+                        </div>
+                      </td>
+                    </tr>
+                  ) : rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={Math.max(headers.length, 1)}>
+                        <div className="empty" style={{ padding: '34px 14px', textAlign: 'center', color: 'var(--grey-600)' }}>
+                          No data matches the selected report parameters.
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    rows.slice(0, 400).map((row, rIdx) => {
+                      const isTotal = String(row[0]) === 'TOTAL';
+                      return (
+                        <tr
+                          key={rIdx}
+                          style={
+                            isTotal
+                              ? { fontWeight: 700, background: 'var(--grey-050)' }
+                              : undefined
+                          }
+                        >
+                          {row.map((cell, cIdx) => {
+                            const isMoney = moneyCols.includes(cIdx);
+                            return (
+                              <td key={cIdx} className={isMoney ? 'num' : ''}>
+                                {isMoney
+                                  ? typeof cell === 'number'
+                                    ? money(cell)
+                                    : money(Number(cell) || 0)
+                                  : cell === '' || cell === null || cell === undefined
+                                  ? '—'
+                                  : String(cell)}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {rows.length > 400 && (
+              <div className="tbl-foot">
+                Showing the first 400 of {cnt(rows.length)} rows on screen. Export to CSV for the complete report.
+              </div>
+            )}
           </div>
         </div>
 
