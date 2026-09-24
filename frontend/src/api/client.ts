@@ -584,17 +584,20 @@ class ApiClient {
     return this.getVouchers(params?.status, params?.pao_code);
   }
 
-  async createSingleVoucher(reconId: number, narration?: string) {
+  async createSingleVoucher(reconIdOrPayload: number | { recon_id: number; narration?: string; voucher_date?: string; voucher_no?: string }, narration?: string) {
+    const body = typeof reconIdOrPayload === 'number'
+      ? { recon_id: reconIdOrPayload, narration }
+      : reconIdOrPayload;
     return this.request<any>('/accounting/vouchers/create', {
       method: 'POST',
-      body: JSON.stringify({ recon_id: reconId, narration }),
+      body: JSON.stringify(body),
     });
   }
 
-  async generateVouchersBulk(paoCode: string = 'PAO21') {
+  async generateVouchersBulk(paoCode?: string) {
     return this.request<any>('/accounting/vouchers/generate-bulk', {
       method: 'POST',
-      body: JSON.stringify({ pao_code: paoCode }),
+      body: JSON.stringify({ pao_code: paoCode || undefined }),
     });
   }
 
@@ -719,6 +722,30 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify(payload),
     });
+  }
+
+  // Reports & MIS
+  async getReportCatalogue() {
+    return this.request<ReportMetadata[]>('/reports/list');
+  }
+
+  async getReportData(reportId: string, params?: {
+    from_date?: string;
+    to_date?: string;
+    source_id?: string | number;
+    bank_id?: string | number;
+    pao_code?: string;
+    dept_code?: string;
+  }) {
+    const qp = new URLSearchParams();
+    if (params?.from_date) qp.append('from_date', params.from_date);
+    if (params?.to_date) qp.append('to_date', params.to_date);
+    if (params?.source_id) qp.append('source_id', String(params.source_id));
+    if (params?.bank_id) qp.append('bank_id', String(params.bank_id));
+    if (params?.pao_code) qp.append('pao_code', params.pao_code);
+    if (params?.dept_code) qp.append('dept_code', params.dept_code);
+    const qs = qp.toString() ? `?${qp.toString()}` : '';
+    return this.request<ReportDataset>(`/reports/${reportId}${qs}`);
   }
 
   // 14. Audit Trail

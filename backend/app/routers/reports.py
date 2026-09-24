@@ -21,13 +21,14 @@ async def get_report_data(
     report_id: str,
     from_date: Optional[date] = Query(None),
     to_date: Optional[date] = Query(None),
-    source_id: Optional[int] = Query(None),
-    bank_id: Optional[int] = Query(None),
+    source_id: Optional[str] = Query(None),
+    bank_id: Optional[str] = Query(None),
     pao_code: Optional[str] = Query(None),
+    dept_code: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     return await ReportService.generate_report(
-        db, report_id, from_date, to_date, source_id, bank_id, pao_code
+        db, report_id, from_date, to_date, source_id, bank_id, pao_code, dept_code
     )
 
 @router.get("/{report_id}/export", dependencies=[Depends(require_capability("export"))])
@@ -35,13 +36,14 @@ async def export_report_csv(
     report_id: str,
     from_date: Optional[date] = Query(None),
     to_date: Optional[date] = Query(None),
-    source_id: Optional[int] = Query(None),
-    bank_id: Optional[int] = Query(None),
+    source_id: Optional[str] = Query(None),
+    bank_id: Optional[str] = Query(None),
     pao_code: Optional[str] = Query(None),
+    dept_code: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     dataset = await ReportService.generate_report(
-        db, report_id, from_date, to_date, source_id, bank_id, pao_code
+        db, report_id, from_date, to_date, source_id, bank_id, pao_code, dept_code
     )
 
     output = io.StringIO()

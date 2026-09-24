@@ -170,6 +170,17 @@ class MasterService:
             await db.commit()
             await db.refresh(config)
 
+        # Load COA lookup map
+        coa_res = await db.execute(select(ChartOfAccount))
+        coa_map = {c.coa_id: c for c in coa_res.scalars().all()}
+
+        susp_coa = coa_map.get(config.suspense_head_id)
+        rat_coa = coa_map.get(config.rat_suspense_head_id)
+        bank_coa = coa_map.get(config.bank_clearing_head_id)
+        ref_coa = coa_map.get(config.refund_deduct_head_id)
+        penal_coa = coa_map.get(config.penal_interest_head_id)
+        penalty_coa = coa_map.get(config.penalty_head_id)
+
         return {
             "bizDate": config.demo_business_date.isoformat(),
             "fy": config.current_financial_year,
@@ -178,6 +189,14 @@ class MasterService:
             "penalRate": float(config.default_penal_rate_pct),
             "penalDayBasis": config.penal_day_basis,
             "escalationDays": config.exception_escalation_days,
+            "suspenseHead": susp_coa.coa_code if susp_coa else "8658-00-102-01-00-01",
+            "ratHead": rat_coa.coa_code if rat_coa else "8658-00-110-01-00-01",
+            "clearingAccount": bank_coa.coa_code if bank_coa else "8658-00-101-01-00-01",
+            "refundHead": ref_coa.coa_code if ref_coa else "0030-00-900-01-00-01",
+            "penalInterestHead": penal_coa.coa_code if penal_coa else "8658-00-102-01-00-02",
+            "penaltyHead": penalty_coa.coa_code if penalty_coa else "0070-60-800-01-00-02",
+            "penalInterestHeadId": config.penal_interest_head_id,
+            "penaltyHeadId": config.penalty_head_id,
         }
 
     @staticmethod
@@ -208,6 +227,23 @@ class MasterService:
             config.penal_day_basis = int(payload.get("penalDayBasis") or payload.get("penal_day_basis"))
         if "escalationDays" in payload or "exception_escalation_days" in payload:
             config.exception_escalation_days = int(payload.get("escalationDays") or payload.get("exception_escalation_days"))
+
+        # COA Head updates by code or ID
+        if "penalInterestHeadId" in payload:
+            config.penal_interest_head_id = int(payload["penalInterestHeadId"])
+        elif "penalInterestHead" in payload:
+            p_res = await db.execute(select(ChartOfAccount.coa_id).where(ChartOfAccount.coa_code == payload["penalInterestHead"]).limit(1))
+            p_id = p_res.scalar_one_or_none()
+            if p_id:
+                config.penal_interest_head_id = p_id
+
+        if "penaltyHeadId" in payload:
+            config.penalty_head_id = int(payload["penaltyHeadId"])
+        elif "penaltyHead" in payload:
+            p_res2 = await db.execute(select(ChartOfAccount.coa_id).where(ChartOfAccount.coa_code == payload["penaltyHead"]).limit(1))
+            p2_id = p_res2.scalar_one_or_none()
+            if p2_id:
+                config.penalty_head_id = p2_id
 
         config.updated_by = user_id
         await db.commit()

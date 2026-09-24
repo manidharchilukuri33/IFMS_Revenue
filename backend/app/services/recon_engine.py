@@ -774,7 +774,7 @@ class ReconEngineService:
         audit_entry = AuditChangeLog(
             schema_name="ifms_budget",
             table_name="rev_recon_result",
-            operation="U",
+            operation="UPDATE",
             row_pk=str(recon_id),
             new_data={
                 "action": "TRANSACTION_TRACED",
@@ -923,7 +923,7 @@ class ReconEngineService:
         audit_log = AuditChangeLog(
             schema_name="ifms_budget",
             table_name="rev_recon_result",
-            operation="U",
+            operation="UPDATE",
             row_pk=str(recon_id),
             old_data={"status": old_status, "booking_status": old_booking},
             new_data={
@@ -1056,7 +1056,7 @@ class ReconEngineService:
         audit = AuditChangeLog(
             schema_name="ifms_budget",
             table_name="rev_exception_letter",
-            operation="I",
+            operation="INSERT",
             row_pk=letter_no,
             new_data={
                 "letter_no": letter_no,

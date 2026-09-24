@@ -21,7 +21,7 @@ class AuditService:
         if record_id:
             query = query.where(AuditChangeLog.row_pk == str(record_id))
         if action:
-            query = query.where(AuditChangeLog.operation == action)
+            query = query.where(func.upper(AuditChangeLog.operation) == action.upper())
 
         count_query = select(func.count()).select_from(query.subquery())
         total_count = (await db.execute(count_query)).scalar() or 0

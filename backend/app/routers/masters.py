@@ -87,6 +87,7 @@ async def get_system_config(db: AsyncSession = Depends(get_db)):
     return await MasterService.get_system_config(db)
 
 @router.put("/system-config", dependencies=[Depends(require_capability("masters.edit"))])
+@router.put("/config", dependencies=[Depends(require_capability("masters.edit"))])
 @router.post("/system-config", dependencies=[Depends(require_capability("masters.edit"))])
 @router.post("/config", dependencies=[Depends(require_capability("masters.edit"))])
 async def update_system_config(

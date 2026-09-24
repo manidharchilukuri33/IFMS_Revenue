@@ -40,7 +40,16 @@ async def create_single_voucher(
 ):
     recon_id = payload.get("recon_id") or payload.get("id") or 1
     narration = payload.get("narration")
-    return await VoucherService.create_single_voucher(db, recon_id, narration, user.user_id)
+    voucher_date = payload.get("voucher_date") or payload.get("date")
+    voucher_no = payload.get("voucher_no") or payload.get("no")
+    return await VoucherService.create_single_voucher(
+        db=db,
+        recon_id=recon_id,
+        narration=narration,
+        user_id=user.user_id,
+        voucher_date_str=voucher_date,
+        voucher_no_custom=voucher_no,
+    )
 
 @router.post("/vouchers/generate-bulk", dependencies=[Depends(require_capability("voucher.create"))])
 async def generate_vouchers_bulk(

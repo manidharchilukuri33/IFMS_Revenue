@@ -175,6 +175,8 @@ class RevSystemConfig(Base):
     bank_clearing_head_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.chart_of_account.coa_id"))
     refund_deduct_head_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.chart_of_account.coa_id"))
     devolution_expenditure_head_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.chart_of_account.coa_id"))
+    penal_interest_head_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.chart_of_account.coa_id"))
+    penalty_head_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.chart_of_account.coa_id"))
     created_by: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.app_user.user_id"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.clock_timestamp(), nullable=False)
     updated_by: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("ifms_budget.app_user.user_id"))

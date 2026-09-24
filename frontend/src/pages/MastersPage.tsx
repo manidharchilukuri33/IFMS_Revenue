@@ -18,7 +18,7 @@ export const MastersPage: React.FC = () => {
   const [slaRules, setSlaRules] = useState<any[]>([]);
 
   // Config State
-  const [config, setConfig] = useState({
+  const [config, setConfig] = useState<any>({
     bizDate: '2026-09-12',
     fy: '2026-27',
     dateTolerance: 2,
@@ -27,11 +27,13 @@ export const MastersPage: React.FC = () => {
     penalDayBasis: 365,
     escalationDays: 7,
     calendarDays: true,
-    suspenseHead: '8658-00-102-00-00-00',
-    ratHead: '8658-00-101-00-00-00',
-    clearingAccount: 'GOVT-RBI-RECEIPTS',
+    suspenseHead: '8658-00-102-01-00-01',
+    ratHead: '8658-00-110-01-00-01',
+    clearingAccount: '8658-00-101-01-00-01',
     refundHead: '0030-00-900-01-00-01',
     devolutionHead: '3604-00-200-01-00-01',
+    penalInterestHead: '8658-00-102-01-00-02',
+    penaltyHead: '0070-60-800-01-00-02',
   });
 
   const canEdit = ['SYSADMIN'].includes(userRole);
@@ -39,7 +41,7 @@ export const MastersPage: React.FC = () => {
   const fetchMasterData = async () => {
     try {
       setLoading(true);
-      const [srcRes, headRes, paoRes, bankRes, bodyRes, ruleRes, slaRes] = await Promise.all([
+      const [srcRes, headRes, paoRes, bankRes, bodyRes, ruleRes, slaRes, cfgRes] = await Promise.all([
         api.getRevenueSources().catch(() => []),
         api.getReceiptHeads().catch(() => []),
         api.getPaos().catch(() => []),
@@ -47,6 +49,7 @@ export const MastersPage: React.FC = () => {
         api.getLocalBodies().catch(() => []),
         api.getReconciliationRules().catch(() => []),
         api.getSlaRules().catch(() => []),
+        api.getSystemConfig().catch(() => null),
       ]);
 
       setSources(srcRes || []);
@@ -56,6 +59,13 @@ export const MastersPage: React.FC = () => {
       setLocalBodies(bodyRes || []);
       setRules(ruleRes || []);
       setSlaRules(slaRes || []);
+
+      if (cfgRes) {
+        setConfig((prev: any) => ({
+          ...prev,
+          ...cfgRes,
+        }));
+      }
     } catch (e: any) {
       showToast('Failed to load master configuration', 'error');
     } finally {
@@ -73,7 +83,16 @@ export const MastersPage: React.FC = () => {
       showToast('Only System Administrator can edit configuration.', 'warning');
       return;
     }
-    showToast('System configuration saved. Audit log recorded.', 'success');
+    try {
+      setLoading(true);
+      await api.updateSystemConfig(config);
+      showToast('System configuration saved. Audit log recorded.', 'success');
+      triggerRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save configuration', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -583,7 +602,35 @@ export const MastersPage: React.FC = () => {
                   disabled={!canEdit}
                 />
               </div>
+
+              <div className="fld">
+                <label>Penal Interest Posting Head / Account</label>
+                <input
+                  className="inp"
+                  value={config.penalInterestHead}
+                  onChange={e => setConfig({ ...config, penalInterestHead: e.target.value })}
+                  disabled={!canEdit}
+                />
+              </div>
+
+              <div className="fld">
+                <label>Penalty Posting Head / Account</label>
+                <input
+                  className="inp"
+                  value={config.penaltyHead}
+                  onChange={e => setConfig({ ...config, penaltyHead: e.target.value })}
+                  disabled={!canEdit}
+                />
+              </div>
             </div>
+
+            {canEdit && (
+              <div className="mt16 flex justify-end">
+                <button type="submit" className="btn btn-p btn-sm">
+                  Save Configuration
+                </button>
+              </div>
+            )}
           </form>
         </div>
       )}

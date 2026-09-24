@@ -56,6 +56,10 @@ class AccountVoucherResponse(BaseModel):
     created_at: datetime
     organization_id: Optional[int] = 1
     org_branch_id: Optional[int] = 1
+    penal_interest_amount: Optional[Decimal] = Decimal("0.00")
+    sla_delay_days: Optional[int] = 0
+    created_by_name: Optional[str] = None
+    approved_by_name: Optional[str] = None
     created_by: Optional[int] = None
     updated_by: Optional[int] = None
     workflow_status: Optional[str] = "ACTIVE"
@@ -68,11 +72,14 @@ class AccountVoucherDetailResponse(BaseModel):
     debit_head: Optional[Dict[str, Any]] = None
     credit_head: Optional[Dict[str, Any]] = None
     recon_context: Optional[Dict[str, Any]] = None
+    journal_entries: Optional[List[Dict[str, Any]]] = None
+    total_debit: Optional[Decimal] = None
+    total_credit: Optional[Decimal] = None
 
 ReceiptVoucherDetailResponse = AccountVoucherDetailResponse
 
 class BulkVoucherCreateRequest(BaseModel):
-    pao_code: str = "PAO21"
+    pao_code: Optional[str] = None
 
 class BulkVoucherApproveRequest(BaseModel):
     remarks: Optional[str] = "Verified and approved by PAO Checker."

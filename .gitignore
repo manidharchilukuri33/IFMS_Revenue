@@ -69,3 +69,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# Office temp lock files
+~$*
+

@@ -58,8 +58,12 @@ def run_migration():
             created_by          bigint REFERENCES ifms_budget.app_user(user_id),
             updated_by          bigint REFERENCES ifms_budget.app_user(user_id),
             workflow_status     character varying(30) DEFAULT 'ACTIVE',
-            created_at          timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+            created_at          timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+            CONSTRAINT uq_account_voucher_no_sr UNIQUE (voucher_no, sr_no)
         );
+
+        -- Ensure legacy single column constraint is dropped
+        ALTER TABLE ifms_budget.account_voucher DROP CONSTRAINT IF EXISTS account_voucher_voucher_no_key;
         """)
 
         # 2. Migrate existing data if rev_receipt_voucher exists
@@ -170,6 +174,7 @@ def run_migration():
             v_vch_id bigint;
             v_vch_no character varying(50);
             v_clearing_coa_id bigint;
+            v_penal_coa_id bigint;
             v_rev_coa_id bigint;
             v_amount numeric(17,2);
             v_next_sr bigint;
@@ -180,14 +185,21 @@ def run_migration():
             IF v_org_id IS NULL THEN v_org_id := 1; v_branch_id := 1; END IF;
 
             -- Default Dr Suspense/Clearing Head (8658 Remittance in Transit)
-            SELECT coa_id INTO v_clearing_coa_id FROM ifms_budget.chart_of_account WHERE coa_code LIKE '8658%' LIMIT 1;
+            SELECT suspense_head_id, penal_interest_head_id INTO v_clearing_coa_id, v_penal_coa_id 
+            FROM ifms_budget.rev_system_config WHERE config_id = 1;
+
             IF v_clearing_coa_id IS NULL THEN
-                SELECT coa_id INTO v_clearing_coa_id FROM ifms_budget.chart_of_account LIMIT 1;
+                SELECT coa_id INTO v_clearing_coa_id FROM ifms_budget.chart_of_account WHERE coa_code LIKE '8658%' LIMIT 1;
+            END IF;
+            IF v_penal_coa_id IS NULL THEN
+                SELECT coa_id INTO v_penal_coa_id FROM ifms_budget.chart_of_account WHERE coa_code = '8658-00-102-01-00-02' LIMIT 1;
+                IF v_penal_coa_id IS NULL THEN v_penal_coa_id := v_clearing_coa_id; END IF;
             END IF;
 
             FOR v_item IN 
                 SELECT res.recon_id, res.challan_no, res.payer_name, res.pao_code, res.receipt_head,
                        COALESCE(NULLIF(res.portal_total, 0), NULLIF(res.bank_total, 0), NULLIF(res.rbi_total, 0), 100.00)::numeric(17,2) as vch_amount,
+                       COALESCE(res.penal_interest_amount, 0.00)::numeric(17,2) as penal_amount,
                        s.department_id, s.default_receipt_head_id
                 FROM ifms_budget.rev_recon_result res
                 LEFT JOIN ifms_budget.rev_revenue_source s ON s.source_code = res.revenue_source
@@ -208,26 +220,42 @@ def run_migration():
                     END IF;
                 END IF;
 
-                SELECT COALESCE(MAX(sr_no), 0) + 1 INTO v_next_sr FROM ifms_budget.account_voucher;
                 v_vch_no := ifms_budget.fn_rev_next_seq('VOUCHER_SEQ', 'VR', '2026-27');
                 IF v_vch_no IS NULL OR v_vch_no = '' THEN
                     v_vch_no := 'VR-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || lpad(v_item.recon_id::text, 4, '0');
                 END IF;
 
+                -- Row 1: Principal Gross Amount (sr_no = 1)
                 INSERT INTO ifms_budget.account_voucher (
                     sr_no, voucher_no, recon_id, voucher_date, voucher_type, financial_year, pao_code,
                     amount, debit_coa_id, credit_coa_id, department_id,
                     narration, status, prepared_by, prepared_at,
                     organization_id, org_branch_id, created_by, updated_by, workflow_status
                 ) VALUES (
-                    v_next_sr, v_vch_no, v_item.recon_id, CURRENT_DATE, 'REVENUE_RECEIPT', '2026-27', v_item.pao_code,
+                    1, v_vch_no, v_item.recon_id, CURRENT_DATE, 'REVENUE_RECEIPT', '2026-27', v_item.pao_code,
                     v_amount, v_clearing_coa_id, v_rev_coa_id, v_item.department_id,
                     'Receipt booked upon 3-way reconciliation match for Challan ' || COALESCE(v_item.challan_no, '') || ' (' || COALESCE(v_item.payer_name, 'Payer') || ')',
                     'Draft', p_user_id, clock_timestamp(),
                     v_org_id, v_branch_id, p_user_id, p_user_id, 'ACTIVE'
                 ) RETURNING voucher_id INTO v_vch_id;
 
-                UPDATE ifms_budget.rev_recon_result SET booking_status = 'BOOKED' WHERE recon_id = v_item.recon_id;
+                -- Row 2: Penal Interest Amount (sr_no = 2) if penal interest accrued
+                IF v_item.penal_amount > 0 THEN
+                    INSERT INTO ifms_budget.account_voucher (
+                        sr_no, voucher_no, recon_id, voucher_date, voucher_type, financial_year, pao_code,
+                        amount, debit_coa_id, credit_coa_id, department_id,
+                        narration, status, prepared_by, prepared_at,
+                        organization_id, org_branch_id, created_by, updated_by, workflow_status
+                    ) VALUES (
+                        2, v_vch_no, v_item.recon_id, CURRENT_DATE, 'REVENUE_RECEIPT', '2026-27', v_item.pao_code,
+                        v_item.penal_amount, v_penal_coa_id, v_rev_coa_id, v_item.department_id,
+                        'Penal interest remittance for SLA delay on Challan ' || COALESCE(v_item.challan_no, ''),
+                        'Draft', p_user_id, clock_timestamp(),
+                        v_org_id, v_branch_id, p_user_id, p_user_id, 'ACTIVE'
+                    );
+                END IF;
+
+                UPDATE ifms_budget.rev_recon_result SET booking_status = 'DRAFT_VOUCHER' WHERE recon_id = v_item.recon_id;
             END LOOP;
         END;
         $procedure$;
@@ -248,6 +276,14 @@ def run_migration():
                 approved_at = clock_timestamp(),
                 updated_by = p_checker_id
             WHERE status = 'Draft';
+
+            UPDATE ifms_budget.rev_recon_result
+            SET booking_status = 'BOOKED',
+                updated_at = clock_timestamp(),
+                updated_by = p_checker_id
+            WHERE recon_id IN (
+                SELECT recon_id FROM ifms_budget.account_voucher WHERE status = 'Approved' AND recon_id IS NOT NULL
+            ) AND booking_status != 'BOOKED';
         END;
         $procedure$;
         """)

@@ -162,7 +162,7 @@ class AuditChangeLog(Base):
     audit_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     schema_name: Mapped[str] = mapped_column(Text, nullable=False)
     table_name: Mapped[str] = mapped_column(Text, nullable=False)
-    operation: Mapped[str] = mapped_column(String(1), nullable=False) # 'I', 'U', 'D'
+    operation: Mapped[str] = mapped_column(String(20), nullable=False) # 'INSERT', 'UPDATE', 'DELETE'
     row_pk: Mapped[Optional[str]] = mapped_column(Text)
     old_data: Mapped[Optional[dict]] = mapped_column(JSONB)
     new_data: Mapped[Optional[dict]] = mapped_column(JSONB)
