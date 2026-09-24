@@ -36,6 +36,9 @@ import {
   UserRole,
 } from '../types';
 
+
+
+
 const BASE_URL = '/api';
 
 const getSavedClientRole = (): UserRole => {
@@ -949,20 +952,65 @@ class ApiClient {
   }
 
   // 14. Audit Trail
-  async getAuditLogs(tableNameOrParams?: any, limit: number = 50) {
+  async getAuditLogs(params?: {
+    table_name?: string;
+    module?: string;
+    record_id?: string;
+    action?: string;
+    user?: string;
+    from_date?: string;
+    to_date?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  } | string, limit: number = 50) {
     const qp = new URLSearchParams();
-    if (typeof tableNameOrParams === 'object') {
-      if (tableNameOrParams.table_name) qp.append('table_name', tableNameOrParams.table_name);
-      if (tableNameOrParams.limit) qp.append('limit', String(tableNameOrParams.limit));
-    } else if (typeof tableNameOrParams === 'string') {
-      qp.append('table_name', tableNameOrParams);
+    if (typeof params === 'object') {
+      if (params.table_name && params.table_name !== 'ALL') qp.append('table_name', params.table_name);
+      if (params.module && params.module !== 'ALL') qp.append('module', params.module);
+      if (params.record_id) qp.append('record_id', params.record_id);
+      if (params.action && params.action !== 'ALL') qp.append('action', params.action);
+      if (params.user) qp.append('user', params.user);
+      if (params.from_date) qp.append('from_date', params.from_date);
+      if (params.to_date) qp.append('to_date', params.to_date);
+      if (params.search) qp.append('search', params.search);
+      if (params.limit) qp.append('limit', String(params.limit));
+      if (params.offset !== undefined) qp.append('offset', String(params.offset));
+    } else if (typeof params === 'string') {
+      if (params && params !== 'ALL') qp.append('table_name', params);
       qp.append('limit', String(limit));
     }
     const qs = qp.toString() ? `?${qp.toString()}` : '';
-    return this.request<{ items: AuditLog[] } | AuditLog[]>(`/audit${qs}`).then(res => {
-      if (Array.isArray(res)) return { items: res };
+    return this.request<{
+      total: number;
+      limit: number;
+      offset: number;
+      summary: {
+        total_entries: number;
+        distinct_modules: number;
+        distinct_actions: number;
+        earliest_entry: string;
+        latest_entry: string;
+        modules: string[];
+        actions: string[];
+      };
+      items: any[];
+    }>(`/audit${qs}`).then(res => {
+      if (Array.isArray(res)) return { total: res.length, limit: 50, offset: 0, summary: {} as any, items: res };
       return res;
     });
+  }
+
+  async getAuditSummary() {
+    return this.request<{
+      total_entries: number;
+      distinct_modules: number;
+      distinct_actions: number;
+      earliest_entry: string;
+      latest_entry: string;
+      modules: string[];
+      actions: string[];
+    }>('/audit/summary');
   }
 
   // 15. Test Suite
@@ -1007,5 +1055,7 @@ class ApiClient {
     });
   }
 }
+
+
 
 export const api = new ApiClient();
