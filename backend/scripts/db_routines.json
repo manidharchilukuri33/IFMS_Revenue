@@ -1,0 +1,230 @@
+{
+  "armor": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.armor(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
+  },
+  "crypt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.crypt(text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_crypt$function$\n"
+  },
+  "dearmor": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.dearmor(text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_dearmor$function$\n"
+  },
+  "decrypt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.decrypt(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_decrypt$function$\n"
+  },
+  "decrypt_iv": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.decrypt_iv(bytea, bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_decrypt_iv$function$\n"
+  },
+  "digest": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.digest(bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_digest$function$\n"
+  },
+  "encrypt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.encrypt(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_encrypt$function$\n"
+  },
+  "encrypt_iv": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.encrypt_iv(bytea, bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_encrypt_iv$function$\n"
+  },
+  "fn_execute_budget_transition": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_execute_budget_transition(p_proposal_id bigint, p_action_code character varying, p_acted_by bigint, p_remarks text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_proposal ifms_budget.budget_proposal%ROWTYPE;\r\n  v_transition ifms_budget.workflow_transition%ROWTYPE;\r\n  v_is_authorized boolean;\r\nBEGIN\r\n  SELECT * INTO v_proposal\r\n  FROM ifms_budget.budget_proposal\r\n  WHERE proposal_id = p_proposal_id\r\n  FOR UPDATE;\r\n\r\n  IF NOT FOUND THEN\r\n    RAISE EXCEPTION 'Budget proposal ID % does not exist', p_proposal_id;\r\n  END IF;\r\n\r\n  SELECT * INTO v_transition\r\n  FROM ifms_budget.workflow_transition\r\n  WHERE workflow_id = v_proposal.workflow_id\r\n    AND from_status_id = v_proposal.status_id\r\n    AND action_code = upper(p_action_code)\r\n    AND is_active\r\n    AND (amount_from IS NULL OR v_proposal.total_amount >= amount_from)\r\n    AND (amount_to IS NULL OR v_proposal.total_amount <= amount_to)\r\n  ORDER BY transition_id\r\n  LIMIT 1;\r\n\r\n  IF NOT FOUND THEN\r\n    RAISE EXCEPTION 'Action % is not permitted for the present proposal status', p_action_code;\r\n  END IF;\r\n\r\n  IF v_transition.remarks_required\r\n     AND NULLIF(btrim(COALESCE(p_remarks, '')), '') IS NULL THEN\r\n    RAISE EXCEPTION 'Remarks are mandatory for action %', p_action_code;\r\n  END IF;\r\n\r\n  IF v_transition.required_role_id IS NOT NULL THEN\r\n    SELECT EXISTS (\r\n      SELECT 1\r\n      FROM ifms_budget.user_role ur\r\n      WHERE ur.user_id = p_acted_by\r\n        AND ur.role_id = v_transition.required_role_id\r\n        AND ur.organization_id = v_proposal.organization_id\r\n        AND ur.is_active\r\n        AND ur.effective_from <= current_date\r\n        AND (ur.effective_to IS NULL OR ur.effective_to >= current_date)\r\n    ) INTO v_is_authorized;\r\n\r\n    IF NOT v_is_authorized THEN\r\n      RAISE EXCEPTION 'Application user ID % does not hold the required role for action %', p_acted_by, p_action_code;\r\n    END IF;\r\n  END IF;\r\n\r\n  UPDATE ifms_budget.budget_proposal\r\n  SET status_id = v_transition.to_status_id,\r\n      submitted_at = CASE WHEN upper(p_action_code) IN ('SUBMIT', 'RESUBMIT') THEN clock_timestamp() ELSE submitted_at END,\r\n      submitted_by = CASE WHEN upper(p_action_code) IN ('SUBMIT', 'RESUBMIT') THEN p_acted_by ELSE submitted_by END,\r\n      approved_at = CASE WHEN upper(p_action_code) = 'APPROVE' THEN clock_timestamp() ELSE approved_at END,\r\n      approved_by = CASE WHEN upper(p_action_code) = 'APPROVE' THEN p_acted_by ELSE approved_by END,\r\n      updated_by = p_acted_by,\r\n      updated_at = clock_timestamp()\r\n  WHERE proposal_id = p_proposal_id;\r\n\r\n  INSERT INTO ifms_budget.workflow_action_log\r\n    (workflow_id, entity_type, entity_id, from_status_id, to_status_id,\r\n     action_code, action_remarks, acted_by, created_by)\r\n  VALUES\r\n    (v_proposal.workflow_id, 'BUDGET_PROPOSAL', p_proposal_id,\r\n     v_proposal.status_id, v_transition.to_status_id,\r\n     upper(p_action_code), p_remarks, p_acted_by, p_acted_by);\r\nEND;\r\n$function$\n"
+  },
+  "fn_generate_proposal_no": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_generate_proposal_no()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_fy_code varchar(15);\r\nBEGIN\r\n  IF NEW.proposal_no IS NULL OR btrim(NEW.proposal_no) = '' THEN\r\n    SELECT fy_code INTO v_fy_code\r\n    FROM ifms_budget.financial_year\r\n    WHERE financial_year_id = NEW.financial_year_id;\r\n\r\n    IF v_fy_code IS NULL THEN\r\n      RAISE EXCEPTION 'Financial year % not found for proposal numbering', NEW.financial_year_id;\r\n    END IF;\r\n\r\n    NEW.proposal_no := 'BGT-' || replace(v_fy_code, '-', '') || '-'\r\n      || lpad(nextval('ifms_budget.proposal_number_seq')::text, 7, '0');\r\n  END IF;\r\n  RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  "fn_get_budget_availability": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_get_budget_availability(p_budget_version_id bigint, p_department_id bigint, p_demand_id bigint, p_ddo_id bigint, p_coa_id bigint, p_scheme_id bigint DEFAULT NULL::bigint, p_project_id bigint DEFAULT NULL::bigint, p_fund_source_id bigint DEFAULT NULL::bigint)\n RETURNS TABLE(provision_amount numeric, allocation_amount numeric, release_amount numeric, commitment_amount numeric, expenditure_amount numeric, available_amount numeric)\n LANGUAGE sql\n STABLE\nAS $function$\r\n  SELECT\r\n    COALESCE(SUM(le.provision_amount),0)::numeric(18,2) AS provision_amount,\r\n    COALESCE(SUM(le.allocation_amount),0)::numeric(18,2) AS allocation_amount,\r\n    COALESCE(SUM(le.release_amount),0)::numeric(18,2) AS release_amount,\r\n    COALESCE(SUM(le.commitment_amount),0)::numeric(18,2) AS commitment_amount,\r\n    COALESCE(SUM(le.expenditure_amount),0)::numeric(18,2) AS expenditure_amount,\r\n    (COALESCE(SUM(le.provision_amount),0)\r\n      - COALESCE(SUM(le.commitment_amount),0)\r\n      - COALESCE(SUM(le.expenditure_amount),0))::numeric(18,2) AS available_amount\r\n  FROM ifms_budget.budget_ledger_entry le\r\n  JOIN ifms_budget.budget_ledger_batch lb ON lb.ledger_batch_id = le.ledger_batch_id\r\n  WHERE lb.batch_status = 'POSTED'\r\n    AND le.entry_status = 'POSTED'\r\n    AND le.budget_version_id = p_budget_version_id\r\n    AND le.department_id IS NOT DISTINCT FROM p_department_id\r\n    AND le.demand_id IS NOT DISTINCT FROM p_demand_id\r\n    AND le.ddo_id IS NOT DISTINCT FROM p_ddo_id\r\n    AND le.coa_id = p_coa_id\r\n    AND le.scheme_id IS NOT DISTINCT FROM p_scheme_id\r\n    AND le.project_id IS NOT DISTINCT FROM p_project_id\r\n    AND le.fund_source_id IS NOT DISTINCT FROM p_fund_source_id;\r\n$function$\n"
+  },
+  "fn_lock_budget_version": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_lock_budget_version(p_budget_version_id bigint, p_user_id bigint, p_reason text)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  UPDATE ifms_budget.budget_version\r\n  SET is_locked = true,\r\n      version_status = 'LOCKED',\r\n      locked_at = clock_timestamp(),\r\n      locked_by = p_user_id,\r\n      lock_reason = p_reason,\r\n      updated_by = p_user_id,\r\n      updated_at = clock_timestamp()\r\n  WHERE budget_version_id = p_budget_version_id;\r\n  IF NOT FOUND THEN\r\n    RAISE EXCEPTION 'Budget version % does not exist', p_budget_version_id;\r\n  END IF;\r\nEND;\r\n$function$\n"
+  },
+  "fn_log_change": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_log_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\n            DECLARE\n              v_pk text;\n              v_changed_by bigint;\n            BEGIN\n              v_pk := COALESCE(to_jsonb(NEW)->>TG_ARGV[0], to_jsonb(OLD)->>TG_ARGV[0]);\n              BEGIN\n                v_changed_by := NULLIF(current_setting('app.user_id', true), '')::bigint;\n              EXCEPTION WHEN invalid_text_representation THEN\n                v_changed_by := NULL;\n              END;\n\n              INSERT INTO ifms_budget.audit_change_log\n                (schema_name, table_name, operation, row_pk, old_data, new_data, changed_by)\n              VALUES\n                (TG_TABLE_SCHEMA, TG_TABLE_NAME, TG_OP, v_pk,\n                 CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN to_jsonb(OLD) END,\n                 CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN to_jsonb(NEW) END,\n                 v_changed_by);\n              RETURN COALESCE(NEW, OLD);\n            END;\n            $function$\n"
+  },
+  "fn_next_document_no": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_next_document_no(p_sequence_key character varying, p_financial_year_id bigint DEFAULT NULL::bigint)\n RETURNS character varying\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_prefix varchar(20);\r\n  v_number bigint;\r\n  v_padding integer;\r\n  v_fy varchar(15);\r\nBEGIN\r\n  UPDATE ifms_budget.document_number_sequence\r\n     SET last_number = last_number + 1,\r\n         updated_at = clock_timestamp()\r\n   WHERE sequence_key = upper(p_sequence_key)\r\n   RETURNING prefix, last_number, padding_length INTO v_prefix, v_number, v_padding;\r\n\r\n  IF NOT FOUND THEN\r\n    RAISE EXCEPTION 'Document sequence key % is not configured', p_sequence_key;\r\n  END IF;\r\n\r\n  IF p_financial_year_id IS NOT NULL THEN\r\n    SELECT replace(fy_code, '-', '') INTO v_fy\r\n    FROM ifms_budget.financial_year\r\n    WHERE financial_year_id = p_financial_year_id;\r\n  END IF;\r\n\r\n  RETURN v_prefix || COALESCE(v_fy, to_char(current_date, 'YYYY')) || '-' || lpad(v_number::text, v_padding, '0');\r\nEND;\r\n$function$\n"
+  },
+  "fn_post_budget_ledger": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_post_budget_ledger(p_batch_no character varying, p_batch_date date, p_source_module character varying, p_event_type character varying, p_source_reference_no character varying, p_budget_version_id bigint, p_organization_id bigint, p_department_id bigint, p_demand_id bigint, p_ddo_id bigint, p_coa_id bigint, p_scheme_id bigint, p_project_id bigint, p_fund_source_id bigint, p_provision_amount numeric DEFAULT 0, p_allocation_amount numeric DEFAULT 0, p_release_amount numeric DEFAULT 0, p_commitment_amount numeric DEFAULT 0, p_expenditure_amount numeric DEFAULT 0, p_receipt_amount numeric DEFAULT 0, p_narration text DEFAULT NULL::text, p_posted_by bigint DEFAULT NULL::bigint)\n RETURNS bigint\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_batch_id bigint;\r\n  v_entry_id bigint;\r\nBEGIN\r\n  INSERT INTO ifms_budget.budget_ledger_batch\r\n    (batch_no, batch_date, source_module, event_type, source_reference_no, batch_status, narration, posted_at, posted_by, created_by)\r\n  VALUES\r\n    (p_batch_no, p_batch_date, p_source_module, p_event_type, p_source_reference_no, 'POSTED', p_narration, clock_timestamp(), p_posted_by, p_posted_by)\r\n  ON CONFLICT (batch_no) DO UPDATE\r\n    SET updated_at = clock_timestamp()\r\n  RETURNING ledger_batch_id INTO v_batch_id;\r\n\r\n  INSERT INTO ifms_budget.budget_ledger_entry\r\n    (ledger_batch_id, posting_date, budget_version_id, organization_id, department_id, demand_id, ddo_id,\r\n     coa_id, scheme_id, project_id, fund_source_id, provision_amount, allocation_amount, release_amount,\r\n     commitment_amount, expenditure_amount, receipt_amount, narration, created_by)\r\n  VALUES\r\n    (v_batch_id, p_batch_date, p_budget_version_id, p_organization_id, p_department_id, p_demand_id, p_ddo_id,\r\n     p_coa_id, p_scheme_id, p_project_id, p_fund_source_id, p_provision_amount, p_allocation_amount, p_release_amount,\r\n     p_commitment_amount, p_expenditure_amount, p_receipt_amount, p_narration, p_posted_by)\r\n  RETURNING ledger_entry_id INTO v_entry_id;\r\n\r\n  RETURN v_entry_id;\r\nEND;\r\n$function$\n"
+  },
+  "fn_refresh_allocation_total": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_refresh_allocation_total()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE v_id bigint;\r\nBEGIN\r\n  v_id := COALESCE(NEW.allocation_id, OLD.allocation_id);\r\n  UPDATE ifms_budget.budget_allocation\r\n  SET total_amount = COALESCE((SELECT SUM(allocated_amount) FROM ifms_budget.budget_allocation_line WHERE allocation_id = v_id),0),\r\n      updated_at = clock_timestamp()\r\n  WHERE allocation_id = v_id;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "fn_refresh_proposal_total": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_refresh_proposal_total()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_proposal_id bigint;\r\nBEGIN\r\n  v_proposal_id := COALESCE(NEW.proposal_id, OLD.proposal_id);\r\n  UPDATE ifms_budget.budget_proposal\r\n     SET total_amount = COALESCE(\r\n       (SELECT SUM(requested_amount)\r\n          FROM ifms_budget.budget_proposal_line\r\n         WHERE proposal_id = v_proposal_id),\r\n       0\r\n     )\r\n   WHERE proposal_id = v_proposal_id;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "fn_refresh_reappropriation_total": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_refresh_reappropriation_total()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE v_id bigint;\r\nBEGIN\r\n  v_id := COALESCE(NEW.reappropriation_id, OLD.reappropriation_id);\r\n  UPDATE ifms_budget.reappropriation\r\n  SET total_amount = COALESCE((SELECT SUM(line_amount) FROM ifms_budget.reappropriation_line WHERE reappropriation_id = v_id AND line_role = 'CREDIT'),0),\r\n      updated_at = clock_timestamp()\r\n  WHERE reappropriation_id = v_id;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "fn_refresh_release_total": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_refresh_release_total()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE v_id bigint;\r\nBEGIN\r\n  v_id := COALESCE(NEW.release_id, OLD.release_id);\r\n  UPDATE ifms_budget.fund_release\r\n  SET total_amount = COALESCE((SELECT SUM(released_amount) FROM ifms_budget.fund_release_line WHERE release_id = v_id),0),\r\n      updated_at = clock_timestamp()\r\n  WHERE release_id = v_id;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "fn_refresh_submission_total": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_refresh_submission_total()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE v_submission_id bigint;\r\nBEGIN\r\n  v_submission_id := COALESCE(NEW.submission_id, OLD.submission_id);\r\n  UPDATE ifms_budget.budget_submission\r\n     SET total_amount = COALESCE((SELECT SUM(proposed_be) FROM ifms_budget.budget_submission_line WHERE submission_id = v_submission_id), 0),\r\n         updated_at = clock_timestamp()\r\n   WHERE submission_id = v_submission_id;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "fn_refresh_supplementary_total": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_refresh_supplementary_total()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE v_id bigint;\r\nBEGIN\r\n  v_id := COALESCE(NEW.supplementary_id, OLD.supplementary_id);\r\n  UPDATE ifms_budget.supplementary_estimate\r\n  SET total_amount = COALESCE((SELECT SUM(additional_amount) FROM ifms_budget.supplementary_estimate_line WHERE supplementary_id = v_id),0),\r\n      updated_at = clock_timestamp()\r\n  WHERE supplementary_id = v_id;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "fn_rev_audit_handler": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_rev_audit_handler()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\n            DECLARE\n                v_old jsonb := NULL;\n                v_new jsonb := NULL;\n                v_pk text := NULL;\n            BEGIN\n                IF (TG_OP = 'DELETE') THEN\n                    v_old := to_jsonb(OLD);\n                    v_pk := COALESCE(\n                        v_old->>'step_id',\n                        v_old->>'template_id',\n                        v_old->>'glossary_id',\n                        v_old->>'recon_id', \n                        v_old->>'batch_id', \n                        v_old->>'voucher_id', \n                        v_old->>'refund_id', \n                        v_old->>'claim_id', \n                        v_old->>'exception_id', \n                        'UNKNOWN'\n                    );\n                    INSERT INTO ifms_budget.audit_change_log (schema_name, table_name, operation, row_pk, old_data, new_data, changed_by)\n                    VALUES (TG_TABLE_SCHEMA, TG_TABLE_NAME, 'DELETE', v_pk, v_old, NULL, NULL);\n                    RETURN OLD;\n                ELSIF (TG_OP = 'UPDATE') THEN\n                    v_old := to_jsonb(OLD);\n                    v_new := to_jsonb(NEW);\n                    v_pk := COALESCE(\n                        v_new->>'step_id',\n                        v_new->>'template_id',\n                        v_new->>'glossary_id',\n                        v_new->>'recon_id', \n                        v_new->>'batch_id', \n                        v_new->>'voucher_id', \n                        v_new->>'refund_id', \n                        v_new->>'claim_id', \n                        v_new->>'exception_id', \n                        'UNKNOWN'\n                    );\n                    INSERT INTO ifms_budget.audit_change_log (schema_name, table_name, operation, row_pk, old_data, new_data, changed_by)\n                    VALUES (TG_TABLE_SCHEMA, TG_TABLE_NAME, 'UPDATE', v_pk, v_old, v_new, NULL);\n                    RETURN NEW;\n                ELSIF (TG_OP = 'INSERT') THEN\n                    v_new := to_jsonb(NEW);\n                    v_pk := COALESCE(\n                        v_new->>'step_id',\n                        v_new->>'template_id',\n                        v_new->>'glossary_id',\n                        v_new->>'recon_id', \n                        v_new->>'batch_id', \n                        v_new->>'voucher_id', \n                        v_new->>'refund_id', \n                        v_new->>'claim_id', \n                        v_new->>'exception_id', \n                        'UNKNOWN'\n                    );\n                    INSERT INTO ifms_budget.audit_change_log (schema_name, table_name, operation, row_pk, old_data, new_data, changed_by)\n                    VALUES (TG_TABLE_SCHEMA, TG_TABLE_NAME, 'INSERT', v_pk, NULL, v_new, NULL);\n                    RETURN NEW;\n                END IF;\n                RETURN NULL;\n            END;\n        $function$\n"
+  },
+  "fn_rev_calculate_delay_days": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_rev_calculate_delay_days(p_payment_mode text, p_payment_date date, p_realisation_date date, p_remittance_date date, p_allowed_days integer DEFAULT 1)\n RETURNS TABLE(base_date date, base_date_type text, actual_days integer, delay_days integer)\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\r\nDECLARE\r\n    v_base date;\r\n    v_type text;\r\n    v_actual integer;\r\n    v_delay integer;\r\nBEGIN\r\n    IF UPPER(p_payment_mode) IN ('CHEQUE', 'DD') THEN\r\n        v_base := COALESCE(p_realisation_date, p_payment_date);\r\n        v_type := 'REALISATION_DATE';\r\n    ELSE\r\n        v_base := p_payment_date;\r\n        v_type := 'PAYMENT_DATE';\r\n    END IF;\r\n\r\n    v_actual := GREATEST(0, (p_remittance_date - v_base));\r\n    v_delay := GREATEST(0, v_actual - p_allowed_days);\r\n\r\n    RETURN QUERY SELECT v_base, v_type, v_actual, v_delay;\r\nEND;\r\n$function$\n"
+  },
+  "fn_rev_compute_penal_interest": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_rev_compute_penal_interest(p_principal numeric, p_annual_rate_pct numeric, p_delay_days integer, p_day_basis integer DEFAULT 365)\n RETURNS numeric\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\r\nBEGIN\r\n    IF p_delay_days <= 0 OR p_principal <= 0 OR p_annual_rate_pct <= 0 THEN\r\n        RETURN 0.00;\r\n    END IF;\r\n    RETURN ROUND((p_principal * (p_annual_rate_pct / 100.0) * p_delay_days) / p_day_basis, 2);\r\nEND;\r\n$function$\n"
+  },
+  "fn_rev_next_seq": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_rev_next_seq(p_sequence_key text, p_prefix text, p_fy text DEFAULT '2026-27'::text)\n RETURNS text\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    v_next bigint;\r\n    v_formatted text;\r\nBEGIN\r\n    INSERT INTO ifms_budget.document_number_sequence (sequence_key, prefix, last_number, padding_length, updated_at)\r\n    VALUES (p_sequence_key, p_prefix, 1, 6, clock_timestamp())\r\n    ON CONFLICT (sequence_key) DO UPDATE\r\n    SET last_number = ifms_budget.document_number_sequence.last_number + 1,\r\n        updated_at = clock_timestamp()\r\n    RETURNING last_number INTO v_next;\r\n\r\n    v_formatted := p_prefix || '-' || p_fy || '-' || LPAD(v_next::text, 6, '0');\r\n    RETURN v_formatted;\r\nEND;\r\n$function$\n"
+  },
+  "fn_set_audit_columns": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_set_audit_columns()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  IF TG_OP = 'INSERT' THEN\r\n    NEW.created_at := COALESCE(NEW.created_at, clock_timestamp());\r\n    NEW.updated_at := COALESCE(NEW.updated_at, clock_timestamp());\r\n  ELSE\r\n    NEW.updated_at := clock_timestamp();\r\n  END IF;\r\n  RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  "fn_unlock_budget_version": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_unlock_budget_version(p_unlock_request_id bigint, p_approved_by bigint, p_remarks text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_request ifms_budget.budget_unlock_request%ROWTYPE;\r\nBEGIN\r\n  SELECT * INTO v_request\r\n  FROM ifms_budget.budget_unlock_request\r\n  WHERE unlock_request_id = p_unlock_request_id\r\n  FOR UPDATE;\r\n  IF NOT FOUND THEN\r\n    RAISE EXCEPTION 'Unlock request % does not exist', p_unlock_request_id;\r\n  END IF;\r\n  IF v_request.request_status <> 'SUBMITTED' THEN\r\n    RAISE EXCEPTION 'Only submitted unlock requests may be approved';\r\n  END IF;\r\n\r\n  UPDATE ifms_budget.budget_unlock_request\r\n  SET request_status = 'APPROVED', approved_by = p_approved_by, approved_at = clock_timestamp(), approval_remarks = p_remarks,\r\n      unlock_from = clock_timestamp(), updated_at = clock_timestamp()\r\n  WHERE unlock_request_id = p_unlock_request_id;\r\n\r\n  UPDATE ifms_budget.budget_version\r\n  SET is_locked = false, version_status = 'FINAL', lock_reason = NULL, updated_by = p_approved_by, updated_at = clock_timestamp()\r\n  WHERE budget_version_id = v_request.budget_version_id;\r\nEND;\r\n$function$\n"
+  },
+  "fn_validate_coa_hierarchy": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_validate_coa_hierarchy()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_parent_id bigint;\r\nBEGIN\r\n  SELECT major_head_id INTO v_parent_id\r\n  FROM ifms_budget.sub_major_head\r\n  WHERE sub_major_head_id = NEW.sub_major_head_id;\r\n  IF v_parent_id IS NULL OR v_parent_id <> NEW.major_head_id THEN\r\n    RAISE EXCEPTION 'Invalid Chart of Account hierarchy: sub-major head does not belong to selected major head';\r\n  END IF;\r\n\r\n  SELECT sub_major_head_id INTO v_parent_id\r\n  FROM ifms_budget.minor_head\r\n  WHERE minor_head_id = NEW.minor_head_id;\r\n  IF v_parent_id IS NULL OR v_parent_id <> NEW.sub_major_head_id THEN\r\n    RAISE EXCEPTION 'Invalid Chart of Account hierarchy: minor head does not belong to selected sub-major head';\r\n  END IF;\r\n\r\n  SELECT minor_head_id INTO v_parent_id\r\n  FROM ifms_budget.sub_head\r\n  WHERE sub_head_id = NEW.sub_head_id;\r\n  IF v_parent_id IS NULL OR v_parent_id <> NEW.minor_head_id THEN\r\n    RAISE EXCEPTION 'Invalid Chart of Account hierarchy: sub head does not belong to selected minor head';\r\n  END IF;\r\n\r\n  SELECT sub_head_id INTO v_parent_id\r\n  FROM ifms_budget.detail_head\r\n  WHERE detail_head_id = NEW.detail_head_id;\r\n  IF v_parent_id IS NULL OR v_parent_id <> NEW.sub_head_id THEN\r\n    RAISE EXCEPTION 'Invalid Chart of Account hierarchy: detail head does not belong to selected sub head';\r\n  END IF;\r\n\r\n  SELECT detail_head_id INTO v_parent_id\r\n  FROM ifms_budget.object_head\r\n  WHERE object_head_id = NEW.object_head_id;\r\n  IF v_parent_id IS NULL OR v_parent_id <> NEW.detail_head_id THEN\r\n    RAISE EXCEPTION 'Invalid Chart of Account hierarchy: object head does not belong to selected detail head';\r\n  END IF;\r\n  RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  "fn_validate_reappropriation_balance": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_validate_reappropriation_balance()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_debit_total numeric(18,2);\r\n  v_credit_total numeric(18,2);\r\n  v_id bigint;\r\nBEGIN\r\n  v_id := COALESCE(NEW.reappropriation_id, OLD.reappropriation_id);\r\n  SELECT COALESCE(SUM(CASE WHEN line_role = 'DEBIT' THEN line_amount ELSE 0 END),0),\r\n         COALESCE(SUM(CASE WHEN line_role = 'CREDIT' THEN line_amount ELSE 0 END),0)\r\n    INTO v_debit_total, v_credit_total\r\n  FROM ifms_budget.reappropriation_line\r\n  WHERE reappropriation_id = v_id;\r\n  IF v_debit_total > 0 AND v_credit_total > 0 AND v_debit_total <> v_credit_total THEN\r\n    RAISE EXCEPTION 'Re-appropriation debit total (%) and credit total (%) must be equal', v_debit_total, v_credit_total;\r\n  END IF;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "fn_validate_submission_phasing": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.fn_validate_submission_phasing()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  v_total_phase numeric(18,2);\r\n  v_proposed numeric(18,2);\r\n  v_line_id bigint;\r\nBEGIN\r\n  v_line_id := COALESCE(NEW.submission_line_id, OLD.submission_line_id);\r\n  SELECT COALESCE(SUM(phase_amount), 0) INTO v_total_phase\r\n  FROM ifms_budget.budget_submission_phasing\r\n  WHERE submission_line_id = v_line_id;\r\n  SELECT proposed_be INTO v_proposed\r\n  FROM ifms_budget.budget_submission_line\r\n  WHERE submission_line_id = v_line_id;\r\n  IF v_proposed IS NOT NULL AND v_total_phase > v_proposed THEN\r\n    RAISE EXCEPTION 'Monthly phasing total (%) cannot exceed proposed BE (%) for submission line %', v_total_phase, v_proposed, v_line_id;\r\n  END IF;\r\n  RETURN COALESCE(NEW, OLD);\r\nEND;\r\n$function$\n"
+  },
+  "gen_random_bytes": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.gen_random_bytes(integer)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_random_bytes$function$\n"
+  },
+  "gen_random_uuid": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.gen_random_uuid()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE\nAS '$libdir/pgcrypto', $function$pg_random_uuid$function$\n"
+  },
+  "gen_salt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.gen_salt(text)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt$function$\n"
+  },
+  "hmac": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.hmac(text, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
+  },
+  "pgp_armor_headers": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_armor_headers(text, OUT key text, OUT value text)\n RETURNS SETOF record\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_armor_headers$function$\n"
+  },
+  "pgp_key_id": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_key_id(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_key_id_w$function$\n"
+  },
+  "pgp_pub_decrypt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_pub_decrypt(bytea, bytea, text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
+  },
+  "pgp_pub_decrypt_bytea": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_pub_decrypt_bytea(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
+  },
+  "pgp_pub_encrypt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_pub_encrypt(text, bytea)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$\n"
+  },
+  "pgp_pub_encrypt_bytea": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_pub_encrypt_bytea(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$\n"
+  },
+  "pgp_sym_decrypt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_sym_decrypt(bytea, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$\n"
+  },
+  "pgp_sym_decrypt_bytea": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_sym_decrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$\n"
+  },
+  "pgp_sym_encrypt": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_sym_encrypt(text, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$\n"
+  },
+  "pgp_sym_encrypt_bytea": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.pgp_sym_encrypt_bytea(bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
+  },
+  "sp_rev_approve_booking_vouchers": {
+    "kind": "b'p'",
+    "definition": "CREATE OR REPLACE PROCEDURE ifms_budget.sp_rev_approve_booking_vouchers(IN p_checker_id bigint, IN p_remarks text DEFAULT 'Verified and approved by PAO Checker.'::text)\n LANGUAGE plpgsql\nAS $procedure$\n        BEGIN\n            UPDATE ifms_budget.account_voucher\n            SET status = 'Approved',\n                checker_user_id = p_checker_id,\n                checker_remarks = COALESCE(p_remarks, 'Verified and bulk approved by PAO Checker.'),\n                approved_at = clock_timestamp(),\n                updated_by = p_checker_id\n            WHERE status = 'Draft';\n\n            UPDATE ifms_budget.rev_recon_result\n            SET booking_status = 'BOOKED',\n                updated_at = clock_timestamp(),\n                updated_by = p_checker_id\n            WHERE recon_id IN (\n                SELECT recon_id FROM ifms_budget.account_voucher WHERE status = 'Approved' AND recon_id IS NOT NULL\n            ) AND booking_status != 'BOOKED';\n        END;\n        $procedure$\n"
+  },
+  "sp_rev_approve_upload_batch": {
+    "kind": "b'p'",
+    "definition": "CREATE OR REPLACE PROCEDURE ifms_budget.sp_rev_approve_upload_batch(IN p_batch_id bigint, IN p_checker_user_id bigint, IN p_remarks text)\n LANGUAGE plpgsql\nAS $procedure$\r\nBEGIN\r\n    UPDATE ifms_budget.rev_upload_batch\r\n    SET status = 'APPROVED',\r\n        checker_user_id = p_checker_user_id,\r\n        checker_remarks = p_remarks,\r\n        approved_at = clock_timestamp()\r\n    WHERE batch_id = p_batch_id\r\n      AND status = 'PENDING_APPROVAL';\r\n\r\n    IF NOT FOUND THEN\r\n        RAISE EXCEPTION 'Upload batch % not found or not in PENDING_APPROVAL status.', p_batch_id;\r\n    END IF;\r\nEND;\r\n$procedure$\n"
+  },
+  "sp_rev_create_booking_vouchers": {
+    "kind": "b'p'",
+    "definition": "CREATE OR REPLACE PROCEDURE ifms_budget.sp_rev_create_booking_vouchers(IN p_user_id bigint, IN p_pao_code character varying DEFAULT 'PAO21'::character varying)\n LANGUAGE plpgsql\nAS $procedure$\n        DECLARE\n            v_item RECORD;\n            v_vch_id bigint;\n            v_vch_no character varying(50);\n            v_clearing_coa_id bigint;\n            v_penal_coa_id bigint;\n            v_rev_coa_id bigint;\n            v_amount numeric(17,2);\n            v_next_sr bigint;\n            v_org_id bigint := 1;\n            v_branch_id bigint := 1;\n        BEGIN\n            SELECT organization_id, branch_id INTO v_org_id, v_branch_id FROM ifms_budget.branch LIMIT 1;\n            IF v_org_id IS NULL THEN v_org_id := 1; v_branch_id := 1; END IF;\n\n            -- Default Dr Suspense/Clearing Head (8658 Remittance in Transit)\n            SELECT suspense_head_id, penal_interest_head_id INTO v_clearing_coa_id, v_penal_coa_id \n            FROM ifms_budget.rev_system_config WHERE config_id = 1;\n\n            IF v_clearing_coa_id IS NULL THEN\n                SELECT coa_id INTO v_clearing_coa_id FROM ifms_budget.chart_of_account WHERE coa_code LIKE '8658%' LIMIT 1;\n            END IF;\n            IF v_penal_coa_id IS NULL THEN\n                SELECT coa_id INTO v_penal_coa_id FROM ifms_budget.chart_of_account WHERE coa_code = '8658-00-102-01-00-02' LIMIT 1;\n                IF v_penal_coa_id IS NULL THEN v_penal_coa_id := v_clearing_coa_id; END IF;\n            END IF;\n\n            FOR v_item IN \n                SELECT res.recon_id, res.challan_no, res.payer_name, res.pao_code, res.receipt_head,\n                       COALESCE(NULLIF(res.portal_total, 0), NULLIF(res.bank_total, 0), NULLIF(res.rbi_total, 0), 100.00)::numeric(17,2) as vch_amount,\n                       COALESCE(res.penal_interest_amount, 0.00)::numeric(17,2) as penal_amount,\n                       s.department_id, s.default_receipt_head_id\n                FROM ifms_budget.rev_recon_result res\n                LEFT JOIN ifms_budget.rev_revenue_source s ON s.source_code = res.revenue_source\n                WHERE res.status = 'Matched' \n                  AND (p_pao_code IS NULL OR res.pao_code = p_pao_code)\n                  AND res.booking_status IN ('UNBOOKED', 'READY_FOR_BOOKING')\n            LOOP\n                v_amount := v_item.vch_amount;\n                IF v_amount <= 0 THEN v_amount := 100.00; END IF;\n\n                -- Credit Revenue Head from source or receipt_head\n                IF v_item.default_receipt_head_id IS NOT NULL THEN\n                    v_rev_coa_id := v_item.default_receipt_head_id;\n                ELSE\n                    SELECT coa_id INTO v_rev_coa_id FROM ifms_budget.chart_of_account WHERE coa_code = v_item.receipt_head LIMIT 1;\n                    IF v_rev_coa_id IS NULL THEN\n                        SELECT coa_id INTO v_rev_coa_id FROM ifms_budget.chart_of_account LIMIT 1;\n                    END IF;\n                END IF;\n\n                v_vch_no := ifms_budget.fn_rev_next_seq('VOUCHER_SEQ', 'VR', '2026-27');\n                IF v_vch_no IS NULL OR v_vch_no = '' THEN\n                    v_vch_no := 'VR-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || lpad(v_item.recon_id::text, 4, '0');\n                END IF;\n\n                -- Row 1: Principal Gross Amount (sr_no = 1)\n                INSERT INTO ifms_budget.account_voucher (\n                    sr_no, voucher_no, recon_id, voucher_date, voucher_type, financial_year, pao_code,\n                    amount, debit_coa_id, credit_coa_id, department_id,\n                    narration, status, prepared_by, prepared_at,\n                    organization_id, org_branch_id, created_by, updated_by, workflow_status\n                ) VALUES (\n                    1, v_vch_no, v_item.recon_id, CURRENT_DATE, 'REVENUE_RECEIPT', '2026-27', v_item.pao_code,\n                    v_amount, v_clearing_coa_id, v_rev_coa_id, v_item.department_id,\n                    'Receipt booked upon 3-way reconciliation match for Challan ' || COALESCE(v_item.challan_no, '') || ' (' || COALESCE(v_item.payer_name, 'Payer') || ')',\n                    'Draft', p_user_id, clock_timestamp(),\n                    v_org_id, v_branch_id, p_user_id, p_user_id, 'ACTIVE'\n                ) RETURNING voucher_id INTO v_vch_id;\n\n                -- Row 2: Penal Interest Amount (sr_no = 2) if penal interest accrued\n                IF v_item.penal_amount > 0 THEN\n                    INSERT INTO ifms_budget.account_voucher (\n                        sr_no, voucher_no, recon_id, voucher_date, voucher_type, financial_year, pao_code,\n                        amount, debit_coa_id, credit_coa_id, department_id,\n                        narration, status, prepared_by, prepared_at,\n                        organization_id, org_branch_id, created_by, updated_by, workflow_status\n                    ) VALUES (\n                        2, v_vch_no, v_item.recon_id, CURRENT_DATE, 'REVENUE_RECEIPT', '2026-27', v_item.pao_code,\n                        v_item.penal_amount, v_penal_coa_id, v_rev_coa_id, v_item.department_id,\n                        'Penal interest remittance for SLA delay on Challan ' || COALESCE(v_item.challan_no, ''),\n                        'Draft', p_user_id, clock_timestamp(),\n                        v_org_id, v_branch_id, p_user_id, p_user_id, 'ACTIVE'\n                    );\n                END IF;\n\n                UPDATE ifms_budget.rev_recon_result SET booking_status = 'DRAFT_VOUCHER' WHERE recon_id = v_item.recon_id;\n            END LOOP;\n        END;\n        $procedure$\n"
+  },
+  "uuid_generate_v1": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_generate_v1()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v1$function$\n"
+  },
+  "uuid_generate_v1mc": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_generate_v1mc()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v1mc$function$\n"
+  },
+  "uuid_generate_v3": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_generate_v3(namespace uuid, name text)\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v3$function$\n"
+  },
+  "uuid_generate_v4": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_generate_v4()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v4$function$\n"
+  },
+  "uuid_generate_v5": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_generate_v5(namespace uuid, name text)\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v5$function$\n"
+  },
+  "uuid_nil": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_nil()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_nil$function$\n"
+  },
+  "uuid_ns_dns": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_ns_dns()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_dns$function$\n"
+  },
+  "uuid_ns_oid": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_ns_oid()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_oid$function$\n"
+  },
+  "uuid_ns_url": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_ns_url()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_url$function$\n"
+  },
+  "uuid_ns_x500": {
+    "kind": "b'f'",
+    "definition": "CREATE OR REPLACE FUNCTION ifms_budget.uuid_ns_x500()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_x500$function$\n"
+  }
+}
