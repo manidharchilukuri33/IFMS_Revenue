@@ -1,0 +1,224 @@
+{
+  "audit_service.py": {
+    "models_imported": [
+      "AppUser",
+      "AuditChangeLog"
+    ],
+    "procedure_calls": [],
+    "methods": [
+      {
+        "name": "_format_values_and_remarks",
+        "params": "table_name: str, operation: str, row_pk: str, old_data: Any, new_data: Any",
+        "ops": {
+          "SELECT": false,
+          "INSERT": false,
+          "UPDATE": true,
+          "DELETE": true
+        },
+        "body_summary": "     if isinstance(old_data, str):         try:             old_data = json.loads(old_data)         except Exception:             pass     if isinstance(new_data, str):         try:             new_da"
+      }
+    ]
+  },
+  "citizen_service.py": {
+    "models_imported": [
+      "RevRefundCase",
+      "RevRefundVerification"
+    ],
+    "procedure_calls": [],
+    "methods": []
+  },
+  "collection_service.py": {
+    "models_imported": [
+      "RevAgencyBankScrollStaging",
+      "RevPortalTransactionStaging",
+      "RevRbiLuggageStaging",
+      "RevReconLegLinkage",
+      "RevReconResult",
+      "RevUploadBatch"
+    ],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq"
+    ],
+    "methods": [
+      {
+        "name": "__init__",
+        "params": "self, db: AsyncSession",
+        "ops": {
+          "SELECT": false,
+          "INSERT": false,
+          "UPDATE": false,
+          "DELETE": false
+        },
+        "body_summary": "         self.db = db "
+      }
+    ]
+  },
+  "dashboard_service.py": {
+    "models_imported": [],
+    "procedure_calls": [],
+    "methods": []
+  },
+  "devolution_service.py": {
+    "models_imported": [
+      "ChartOfAccount",
+      "RevDevolutionAdvice",
+      "RevDevolutionClaim",
+      "RevDevolutionComputation",
+      "RevDevolutionRule",
+      "RevLocalBody",
+      "RevReconResult",
+      "RevRevenueSource"
+    ],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq"
+    ],
+    "methods": []
+  },
+  "exception_service.py": {
+    "models_imported": [
+      "AppUser",
+      "RevException",
+      "RevExceptionLetter",
+      "RevExceptionNote",
+      "RevReconResult"
+    ],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq"
+    ],
+    "methods": [
+      {
+        "name": "__init__",
+        "params": "self, db: AsyncSession",
+        "ops": {
+          "SELECT": false,
+          "INSERT": false,
+          "UPDATE": false,
+          "DELETE": false
+        },
+        "body_summary": "         self.db = db "
+      }
+    ]
+  },
+  "master_service.py": {
+    "models_imported": [
+      "AuditChangeLog",
+      "Branch",
+      "ChartOfAccount",
+      "DDO",
+      "Department"
+    ],
+    "procedure_calls": [],
+    "methods": []
+  },
+  "notification_service.py": {
+    "models_imported": [
+      "SystemNotification"
+    ],
+    "procedure_calls": [],
+    "methods": []
+  },
+  "recon_engine.py": {
+    "models_imported": [
+      "AuditChangeLog",
+      "ChartOfAccount",
+      "RevAgencyBank",
+      "RevException",
+      "RevExceptionLetter",
+      "RevExceptionNote",
+      "RevPenalClaim",
+      "RevReconLegLinkage",
+      "RevReconOverride",
+      "RevReconResult",
+      "RevReconRun",
+      "RevSlaRule",
+      "RevSuspenseRegister",
+      "RevSystemConfig",
+      "SystemNotification"
+    ],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq"
+    ],
+    "methods": [
+      {
+        "name": "__init__",
+        "params": "self, db: AsyncSession",
+        "ops": {
+          "SELECT": false,
+          "INSERT": false,
+          "UPDATE": false,
+          "DELETE": false
+        },
+        "body_summary": "         self.db = db "
+      },
+      {
+        "name": "add",
+        "params": "k, leg, rec",
+        "ops": {
+          "SELECT": false,
+          "INSERT": false,
+          "UPDATE": false,
+          "DELETE": false
+        },
+        "body_summary": "             if not k:                 k = \"UNLINKED-\" + str(id(rec))             if k not in groups:                 groups[k] = {\"portal\": [], \"bank\": [], \"rbi\": []}             groups[k][leg].appen"
+      }
+    ]
+  },
+  "refund_service.py": {
+    "models_imported": [
+      "RevPortalTransactionStaging",
+      "RevReconResult",
+      "RevRefundBill",
+      "RevRefundCase",
+      "RevRefundVerification"
+    ],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq"
+    ],
+    "methods": []
+  },
+  "report_service.py": {
+    "models_imported": [],
+    "procedure_calls": [],
+    "methods": []
+  },
+  "sla_service.py": {
+    "models_imported": [
+      "RevAgencyBank",
+      "RevPenalBankResponse",
+      "RevPenalClaim",
+      "RevPenalLetter",
+      "RevPenalWaiver"
+    ],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq"
+    ],
+    "methods": []
+  },
+  "test_suite_service.py": {
+    "models_imported": [
+      "SystemNotification"
+    ],
+    "procedure_calls": [],
+    "methods": []
+  },
+  "upload_service.py": {
+    "models_imported": [
+      "RevAgencyBank",
+      "RevRevenueSource"
+    ],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq",
+      "ifms_budget.sp_rev_approve_upload_batch"
+    ],
+    "methods": []
+  },
+  "voucher_service.py": {
+    "models_imported": [],
+    "procedure_calls": [
+      "ifms_budget.fn_rev_next_seq",
+      "ifms_budget.sp_rev_approve_booking_vouchers",
+      "ifms_budget.sp_rev_create_booking_vouchers"
+    ],
+    "methods": []
+  }
+}

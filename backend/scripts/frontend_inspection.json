@@ -1,0 +1,2770 @@
+{
+  "AccountingPage.tsx": {
+    "api_calls": [
+      "approveSingleVoucher",
+      "approveVouchersBulk",
+      "createSingleVoucher",
+      "generateVouchersBulk",
+      "getReceiptHeads",
+      "getReceiptVouchers",
+      "getReconciliationResults",
+      "getRevenueSources",
+      "getSuspenseItems",
+      "getSystemConfig"
+    ],
+    "buttons_count": 19,
+    "buttons": [
+      {
+        "text": "&#43; Create vouchers for all ready receipts",
+        "onClick": "handleOpenBulkModal",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#10003; Approve all draft vouchers ({draftVouchers.length})",
+        "onClick": "handleApproveAll",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                    setSearchReady('');\n                    setSourceFilterRea",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExportReadyCSV",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleCreateVoucher(r)}>\n                          Create voucher",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                    setSearchVch('');\n                    setStatusFilterVch('",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export Voucher Register",
+        "onClick": "handleExportVouchers",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedVoucher(v)}>\n                        View",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleApproveVoucher(v)}>\n                          Approve",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  setSearchSusp('');\n                  setStatusFilterSusp('AL",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedVoucher(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleApproveVoucher(selectedVoucher)}\n                >\n                  Appro",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedVoucher(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setCreateVchRow(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setCreateVchRow(null)}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Create draft &amp; route to checker",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setShowBulkModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setShowBulkModal(false)}>\n                Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Create vouchers",
+        "onClick": "handleConfirmBulkVouchers",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 1,
+    "forms": [
+      {
+        "onSubmit": "handleConfirmCreateVoucher",
+        "fields_count": 9,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "vchNo",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "date",
+            "name_or_placeholder": "vchDate",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "vchPeriod",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "createVchRow.rbiAmt",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "money(createVchRow.rbiAmt + (createVchRow.penalInterest || 0))",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "debitAccount",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "creditAccount",
+            "required": false
+          },
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "vchNarration",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "userRole, showToast, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "userRole);"
+    ]
+  },
+  "AuditTrailPage.tsx": {
+    "api_calls": [
+      "getAuditLogs"
+    ],
+    "buttons_count": 9,
+    "buttons": [
+      {
+        "text": "setLiveSync(!liveSync)}\n            title=\"Automatically poll for new database m",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "fetchAuditLogs()} title=\"Refresh audit entries from database\">\n            &#863",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Clear filters",
+        "onClick": "handleClearFilters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                          e.stopPropagation();\n                          setSe",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPage(p => Math.max(1, p - 1))}\n            >\n              &larr; Prev",
+        "onClick": "",
+        "disabled": "page <= 1 || loading",
+        "title": ""
+      },
+      {
+        "text": "= totalPages || loading}\n              onClick={() => setPage(p => Math.min(tota",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExport",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedAudit(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedAudit(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 0,
+    "forms": [],
+    "role_checks": [
+      "role: string;",
+      "role: a.role || a.user_role || 'SYSADMIN',",
+      "role,",
+      "role}</span></td>",
+      "role}) on <strong>{selectedAudit.ts}</strong> &bull; Module: {selectedAudit.module}"
+    ]
+  },
+  "CitizenPage.tsx": {
+    "api_calls": [
+      "getRefundCases"
+    ],
+    "buttons_count": 1,
+    "buttons": [
+      {
+        "text": "{loading ? 'Searching...' : 'Track my refund'}",
+        "onClick": "",
+        "disabled": "loading",
+        "title": ""
+      }
+    ],
+    "forms_count": 1,
+    "forms": [
+      {
+        "onSubmit": "handleSearch",
+        "fields_count": 1,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "e.g. REF-NJ-2026-0001",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": []
+  },
+  "CollectionPage.tsx": {
+    "api_calls": [
+      "getAgencyBanks",
+      "getCollectionTransactions",
+      "getPaos",
+      "getReceiptHeads",
+      "getRevenueSources"
+    ],
+    "buttons_count": 16,
+    "buttons": [
+      {
+        "text": "handleOpenManual()}>\n              &#43; Add Manual Collection",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#10003; Departmental Validation",
+        "onClick": "handleValidateAll",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('upload')}>\n            &#8593; Upload Source Data",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Clear filters",
+        "onClick": "handleClearFilters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                          setSelectedTxn(r);\n                          setTxnT",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenManual(r)}>\n                          Edit",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleValidateSingle(r)}>\n                          Validate",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPage(p => Math.max(1, p - 1))}\n            >\n              &larr; Prev",
+        "onClick": "",
+        "disabled": "page <= 1",
+        "title": ""
+      },
+      {
+        "text": "= totalPages}\n              onClick={() => setPage(p => Math.min(totalPages, p +",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExport",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedTxn(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  setSelectedTxn(null);\n                  setActiveTab('recon'",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedTxn(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setShowManualModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setShowManualModal(false)}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{submitting ? 'Saving...' : editingRecord ? 'Save & route for approval' : 'Post ",
+        "onClick": "",
+        "disabled": "submitting",
+        "title": ""
+      }
+    ],
+    "forms_count": 1,
+    "forms": [
+      {
+        "onSubmit": "handleSaveManual",
+        "fields_count": 19,
+        "fields": [
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.portal_name",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.revenue_source",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.department_code",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.pao_code",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.ddo_code",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "formData.portal_transaction_id",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "formData.challan_no",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "formData.cpin",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "formData.cin",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "formData.payer_name",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "formData.payer_id",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.payment_mode",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "date",
+            "name_or_placeholder": "formData.payment_date",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "date",
+            "name_or_placeholder": "formData.service_date",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "formData.amount",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "formData.penalty_amount",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.receipt_head",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "formData.portal_status",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "formData.service_description",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "userRole, showToast, setActiveTab, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "userRole);",
+      "userRole);",
+      "userRole}</strong>. You have read-only access to the collection register."
+    ]
+  },
+  "DashboardPage.tsx": {
+    "api_calls": [
+      "getAuditLogs",
+      "getDashboardSummary",
+      "runReconciliation"
+    ],
+    "buttons_count": 12,
+    "buttons": [
+      {
+        "text": "&#8646; Run Reconciliation",
+        "onClick": "handleRunRecon",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('exceptions')}>\n            &#9888; View Exceptions",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export Summary",
+        "onClick": "handleExportSummary",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('upload')}>\n                Upload Portal File",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('upload')}>\n                Upload Agency Bank Scroll",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('upload')}>\n                Upload RBI Luggage File",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Run Reconciliation",
+        "onClick": "handleRunRecon",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('exceptions')}>\n                View Exceptions",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('help')}>\n                Download Sample Files",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('help')}>\n                Run Demo Test Suite",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Re-Run Verification",
+        "onClick": "handleRunRecon",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('audit')}>\n              Open audit trail",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 0,
+    "forms": [],
+    "role_checks": [
+      "role: string;",
+      "role: a.user_role || a.role || 'SYSADMIN',",
+      "role=\"img\" aria-label=\"Revenue collection by source\">",
+      "role=\"img\" aria-label=\"Reconciliation Status Distribution\">",
+      "role=\"img\">",
+      "role=\"img\">",
+      "role=\"img\">",
+      "role})"
+    ]
+  },
+  "DevolutionPage.tsx": {
+    "api_calls": [
+      "approveDevolution",
+      "createDevolutionClaim",
+      "getDevolutionClaims",
+      "getDevolutionRules",
+      "getLocalBodies",
+      "issueDevolutionAdvice"
+    ],
+    "buttons_count": 18,
+    "buttons": [
+      {
+        "text": "setNewModal(true)}>\n                &#43; New devolution claim",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  showToast('Sample devolution claims imported and active.', '",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setVarianceModal(true)}>\n            &#9888; Variance exception report",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Clear filters",
+        "onClick": "handleClearFilters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedClaim(c)}>\n                        Open",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPage(p => Math.max(1, p - 1))}\n            >\n              &larr; Prev",
+        "onClick": "",
+        "disabled": "page <= 1",
+        "title": ""
+      },
+      {
+        "text": "= totalPages}\n              onClick={() => setPage(p => Math.min(totalPages, p +",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExport",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedClaim(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleApproveClaim(selectedClaim)}>\n                  Approve Devolution Bill",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleDisburseClaim(selectedClaim)}>\n                  Issue Devolution Advice &",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedClaim(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setNewModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setNewModal(false)}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Submit Claim",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setVarianceModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                              setVarianceModal(false);\n                       ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setVarianceModal(false)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 1,
+    "forms": [
+      {
+        "onSubmit": "handleSaveNewClaim",
+        "fields_count": 6,
+        "fields": [
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "newForm.local_body_code",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "newForm.revenue_source",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "date",
+            "name_or_placeholder": "newForm.claim_period_from",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "date",
+            "name_or_placeholder": "newForm.claim_period_to",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "newForm.claim_amount",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.receipt_head",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "userRole, showToast, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "userRole);",
+      "userRole);"
+    ]
+  },
+  "ExceptionsPage.tsx": {
+    "api_calls": [
+      "getExceptions",
+      "sendReconDiscrepancyLetter",
+      "solveReconDiscrepancy",
+      "traceReconResult"
+    ],
+    "buttons_count": 32,
+    "buttons": [
+      {
+        "text": "{\n                  if (!selectedIds.length) {\n                    showToast('Se",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#9650; Escalate overdue",
+        "onClick": "handleEscalateOverdue",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n              setFilters({ ...filters, status: '' });\n              showToast(",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  setFilters({ ...filters, cat: '' });\n                  setPa",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Clear filters",
+        "onClick": "handleClearFilters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedExc(e)}>\n                          Open",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenTrace(e)}\n                            >\n                              ",
+        "onClick": "",
+        "disabled": "",
+        "title": "Trace complete 3-way transaction path and audit log"
+      },
+      {
+        "text": "handleOpenSolve(e)}\n                            >\n                              ",
+        "onClick": "",
+        "disabled": "",
+        "title": "Solve discrepancy and persist resolution in database"
+      },
+      {
+        "text": "handleOpenLetter(e)}\n                          >\n                            \u2709\ufe0f ",
+        "onClick": "",
+        "disabled": "",
+        "title": "Draft and dispatch official discrepancy notice letter"
+      },
+      {
+        "text": "setPage(p => Math.max(1, p - 1))}\n            >\n              &larr; Prev",
+        "onClick": "",
+        "disabled": "page <= 1",
+        "title": ""
+      },
+      {
+        "text": "= totalPages}\n              onClick={() => setPage(p => Math.min(totalPages, p +",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExport",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedExc(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Add comment",
+        "onClick": "handleAddComment",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                        const e = selectedExc;\n                        setSele",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                        const e = selectedExc;\n                        setSele",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleCloseException(selectedExc.id)}\n                    >\n                    ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                        setLetterModal(selectedExc);\n                        s",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedExc(null)}>\n                  Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setLetterModal(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setLetterModal(null)}>\n                    {letterSentResult ? 'Done' : 'Cancel'",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                      if (!letterModal) return;\n                      printOff",
+        "onClick": "",
+        "disabled": "",
+        "title": "Print official letter document"
+      },
+      {
+        "text": "{letterSending ? 'Dispatching & Saving...' : '\u2709\ufe0f Send Official Letter & Save to ",
+        "onClick": "",
+        "disabled": "letterSending",
+        "title": ""
+      },
+      {
+        "text": "setBulkAssignModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setBulkAssignModal(false)}>\n                Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Confirm Assignment",
+        "onClick": "handleBulkAssign",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setTraceModalExc(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setTraceModalExc(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  const exc = traceModalExc;\n                  setTraceModalEx",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSolveModalExc(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSolveModalExc(null)} disabled={solveLoading}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{solveLoading ? 'Saving to Database...' : '\u26a1 Confirm & Persist Solution to Datab",
+        "onClick": "",
+        "disabled": "solveLoading",
+        "title": ""
+      }
+    ],
+    "forms_count": 2,
+    "forms": [
+      {
+        "onSubmit": "handleSendExceptionLetter",
+        "fields_count": 5,
+        "fields": [
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "letterRecipientType",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "letterRecipientName",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "letterRecipientAddress",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "letterSubject",
+            "required": false
+          },
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "letterBody",
+            "required": false
+          }
+        ]
+      },
+      {
+        "onSubmit": "handleConfirmSolve",
+        "fields_count": 7,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveTypeExc",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveTypeExc",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveTypeExc",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveTypeExc",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "solveSuspenseHead",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "solveRefNo",
+            "required": false
+          },
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "solveRemarks",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "userRole, showToast, setActiveTab, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "userRole, text: `Assigned to ${newAssignee}`, ts: new Date().toISOString() },",
+      "userRole.toLowerCase()}.user`,",
+      "role: 'PAO_CHECK',",
+      "role=\"img\"",
+      "userRole}</strong> &middot; Exception Code: <code>{traceModalExc.excCode}</code></span>"
+    ]
+  },
+  "HelpTestPage.tsx": {
+    "api_calls": [
+      "runTestSuite"
+    ],
+    "buttons_count": 3,
+    "buttons": [
+      {
+        "text": "{runningTests ? 'Running tests...' : '\u25b6 Run Demo Test Suite'}",
+        "onClick": "handleRunTestSuite",
+        "disabled": "runningTests",
+        "title": ""
+      },
+      {
+        "text": "handleDownloadSingle(f)}\n                    >\n                      &#11015; Do",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Download all sample files",
+        "onClick": "handleDownloadAll",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 0,
+    "forms": [],
+    "role_checks": [
+      "userRole, showToast, triggerRefresh } = useApp();",
+      "userRole);"
+    ]
+  },
+  "MastersPage.tsx": {
+    "api_calls": [
+      "createAgencyBank",
+      "createAgencyBankBranch",
+      "createDdo",
+      "createDepartment",
+      "createLocalBody",
+      "createPao",
+      "createReceiptHead",
+      "createReconciliationRule",
+      "createRevenuePortal",
+      "createRevenueSource",
+      "createSlaRule",
+      "createTreasury",
+      "getAgencyBankBranches",
+      "getAgencyBanks",
+      "getDdos",
+      "getDepartments",
+      "getLocalBodies",
+      "getPaos",
+      "getReceiptHeads",
+      "getReconciliationRules",
+      "getRevenuePortals",
+      "getRevenueSources",
+      "getSlaRules",
+      "getSystemConfig",
+      "getTreasuries",
+      "updateAgencyBank",
+      "updateAgencyBankBranch",
+      "updateDdo",
+      "updateDepartment",
+      "updateLocalBody",
+      "updatePao",
+      "updateReceiptHead",
+      "updateReconciliationRule",
+      "updateRevenuePortal",
+      "updateRevenueSource",
+      "updateSlaRule",
+      "updateSystemConfig",
+      "updateTreasury"
+    ],
+    "buttons_count": 35,
+    "buttons": [
+      {
+        "text": "setActiveTab('audit')}>\n            &#8703; View audit trail",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenAdd(subTab)}>\n                    &#43; Add Record",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('departments', d)}\n                                style={{ paddi",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('departments', d)}\n                                style={{ p",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('paos', p)}\n                                style={{ padding: '2p",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('paos', p)}\n                                style={{ padding:",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('ddos', d)}\n                                style={{ padding: '2p",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('ddos', d)}\n                                style={{ padding:",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('treasuries', t)}\n                                style={{ paddin",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('treasuries', t)}\n                                style={{ pa",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('localBodies', b)}\n                                style={{ paddi",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('localBodies', b)}\n                                style={{ p",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('banks', b)}\n                                style={{ padding: '2",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('banks', b)}\n                                style={{ padding",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('branches', br)}\n                                style={{ padding",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('branches', br)}\n                                style={{ pad",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('portals', p)}\n                                style={{ padding: ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('portals', p)}\n                                style={{ paddi",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenAdd('sources')}>\n                  &#43; Add Source",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('sources', s)}\n                          style={{ padding: '2px 8",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('sources', s)}\n                          style={{ padding: '2",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenAdd('heads')}>\n                  &#43; Add Receipt Head",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('heads', h)}\n                          style={{ padding: '2px 8px",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('heads', h)}\n                          style={{ padding: '2px",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenAdd('rules')}>\n                  &#43; Add Matching Rule",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('rules', r)}\n                          style={{ padding: '2px 8px",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('rules', r)}\n                          style={{ padding: '2px",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenAdd('slaRules')}>\n                  &#43; Add SLA Rule",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleOpenEdit('slaRules', s)}\n                          style={{ padding: '2px ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleToggleStatus('slaRules', s)}\n                          style={{ padding: '",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#128190; Save configuration",
+        "onClick": "handleSaveConfig",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Save Configuration to Database",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setModalState({ isOpen: false, mode: 'add', entity: '', item: null })}\n         ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setModalState({ isOpen: false, mode: 'add', entity: '', item: null })}\n         ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{modalSaving ? 'Saving to Database...' : modalState.mode === 'add' ? 'Create Rec",
+        "onClick": "",
+        "disabled": "modalSaving",
+        "title": ""
+      }
+    ],
+    "forms_count": 2,
+    "forms": [
+      {
+        "onSubmit": "handleSaveConfig",
+        "fields_count": 12,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "date",
+            "name_or_placeholder": "config.bizDate",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "config.fy",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "config.dateTolerance",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "config.amtTolerance",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "config.penalRate",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "config.escalationDays",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "config.suspenseHead",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "config.ratHead",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "config.clearingAccount",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "config.refundHead",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "config.penalInterestHead",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "config.penaltyHead",
+            "required": false
+          }
+        ]
+      },
+      {
+        "onSubmit": "handleModalSubmit",
+        "fields_count": 55,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.department_code || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.department_type || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.department_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.pao_code || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.dept_code || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.pao_name || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.treasury_code || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.ddo_code || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.department_id || 1",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.ddo_name || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.ddo_type || ",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.treasury_code || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.branch_code || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.branch_type || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.branch_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.city || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.bank_code || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.ifsc_prefix || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.bank_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.clearing_account_no || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.nodal_officer_name || ",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.bank_id || 1",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.branch_code || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.branch_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.ifsc_code || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.city || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.portal_code || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.department_id || 1",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.portal_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.api_endpoint || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.local_body_code || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.body_type || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.local_body_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.bank_account_no || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.ifsc_code || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.source_code || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.department_id || 1",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.source_name || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.default_pao_code || ",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.is_tax_revenue ? ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "0040-00-102-01-00-01",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.coa_name || modalState.item.description || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.account_nature || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.rule_code || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "modalState.item.priority || 1",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.rule_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.primary_match_keys || ",
+            "required": true
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.matching_mode || ",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "modalState.item.outcome_status || ",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.rule_code || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.payment_mode || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "modalState.item.rule_name || ",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "modalState.item.allowed_remittance_days ?? 1",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "modalState.item.annual_penal_rate_pct ?? 12.0",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "checkbox",
+            "name_or_placeholder": "",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "userRole, showToast, setActiveTab, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "can edit configuration.', 'warning');",
+      "userRole}</strong>. Master configuration maintenance requires the <strong>System Administrator</strong> or <strong>Treasury Administrator</strong> role.",
+      "can</option>"
+    ]
+  },
+  "ReconPage.tsx": {
+    "api_calls": [
+      "decideOverride",
+      "getAgencyBanks",
+      "getPaos",
+      "getReconSummary",
+      "getReconciliationResults",
+      "getRevenueSources",
+      "getUploadBatches",
+      "proposeOverride",
+      "resetReconciliation",
+      "runReconciliation",
+      "sendReconDiscrepancyLetter",
+      "solveReconDiscrepancy",
+      "traceReconResult"
+    ],
+    "buttons_count": 40,
+    "buttons": [
+      {
+        "text": "&#128065; Preview candidate matches",
+        "onClick": "handlePreviewRecon",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#8646; Run Reconciliation",
+        "onClick": "handleRunRecon",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#8634; Reset results",
+        "onClick": "handleResetRecon",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSummaryModal(true)}>\n            &#9776; Summary report",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Clear filters",
+        "onClick": "handleClearFilters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                            setSelectedRow(r);\n                            set",
+        "onClick": "",
+        "disabled": "",
+        "title": "Open reconciliation details drawer"
+      },
+      {
+        "text": "handleOpenTrace(r)}\n                            >\n                              ",
+        "onClick": "",
+        "disabled": "",
+        "title": "Trace complete 3-way transaction path and audit log"
+      },
+      {
+        "text": "handleOpenSolve(r)}\n                            >\n                              ",
+        "onClick": "",
+        "disabled": "",
+        "title": "Solve discrepancy and persist resolution to database"
+      },
+      {
+        "text": "handleOpenLetter(r)}\n                            >\n                             ",
+        "onClick": "",
+        "disabled": "",
+        "title": "Draft and dispatch official discrepancy letter notice"
+      },
+      {
+        "text": "setPage(p => Math.max(1, p - 1))}\n            >\n              &larr; Prev",
+        "onClick": "",
+        "disabled": "page <= 1",
+        "title": ""
+      },
+      {
+        "text": "= totalPages}\n              onClick={() => setPage(p => Math.min(totalPages, p +",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExport",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPreviewModal(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPreviewModal(null)}>\n                Discard preview",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  setPreviewModal(null);\n                  handleRunRecon();\n ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSummaryModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  exportCSV(\n                    'ifms_reconciliation_summary.",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "window.print()}>\n                Print",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSummaryModal(false)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedRow(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleDecideOverride(true)}\n                          >\n                        ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleDecideOverride(false)}\n                          >\n                       ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                            setOverrideModal(selectedRow);\n                   ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                        const r = selectedRow;\n                        setSele",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                        const r = selectedRow;\n                        setSele",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                        const r = selectedRow;\n                        setSele",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedRow(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setOverrideModal(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setOverrideModal(null)}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Submit for Checker Approval",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setTraceModalRow(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setTraceModalRow(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  const row = traceModalRow;\n                  setTraceModalRo",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSolveModalRow(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSolveModalRow(null)} disabled={solveLoading}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{solveLoading ? 'Saving to Database...' : '\u26a1 Confirm & Persist Solution to Datab",
+        "onClick": "",
+        "disabled": "solveLoading",
+        "title": ""
+      },
+      {
+        "text": "setLetterModalRow(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setLetterModalRow(null)}>\n                    {letterSentResult ? 'Done' : 'Canc",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                      if (!letterModalRow) return;\n                      print",
+        "onClick": "",
+        "disabled": "",
+        "title": "Print official letter document"
+      },
+      {
+        "text": "{letterSending ? 'Dispatching & Saving...' : '\u2709\ufe0f Send Official Letter & Save to ",
+        "onClick": "",
+        "disabled": "letterSending",
+        "title": ""
+      }
+    ],
+    "forms_count": 3,
+    "forms": [
+      {
+        "onSubmit": "handleSaveOverride",
+        "fields_count": 3,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "overrideModal.status",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "overrideStatus",
+            "required": false
+          },
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "overrideReason",
+            "required": false
+          }
+        ]
+      },
+      {
+        "onSubmit": "handleConfirmSolve",
+        "fields_count": 7,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveType",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveType",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveType",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "radio",
+            "name_or_placeholder": "solveType",
+            "required": false
+          },
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "solveSuspenseHead",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "solveRefNo",
+            "required": false
+          },
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "solveRemarks",
+            "required": false
+          }
+        ]
+      },
+      {
+        "onSubmit": "handleSendLetter",
+        "fields_count": 5,
+        "fields": [
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "letterRecipientType",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "letterRecipientName",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "letterRecipientAddress",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "letterSubject",
+            "required": false
+          },
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "letterBody",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "userRole, showToast, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "userRole);",
+      "userRole);",
+      "userRole);",
+      "role: 'PAO_CHECK',",
+      "userRole}</strong> &middot; Transaction ID: <code>{traceModalRow.revId}</code></span>"
+    ]
+  },
+  "RefundsPage.tsx": {
+    "api_calls": [
+      "approveRefundPao",
+      "createRefundCase",
+      "getPaos",
+      "getRefundCases",
+      "markRefundPaid",
+      "prepareRefundBill",
+      "rejectRefundCase",
+      "verifyShcil"
+    ],
+    "buttons_count": 23,
+    "buttons": [
+      {
+        "text": "{\n                  const found = items.find(\n                    x =>\n         ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setNewModal(true)}>\n                &#43; New refund case",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                  showToast('Sample refund cases already imported and active.'",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setTrackModal(true)}>\n            &#128269; Citizen status tracking",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n              showToast('Refund Performance MIS Report downloaded.', 'info');\n",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Clear filters",
+        "onClick": "handleClearFilters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedCase(r)}>\n                        Open case",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPage(p => Math.max(1, p - 1))}\n            >\n              &larr; Prev",
+        "onClick": "",
+        "disabled": "page <= 1",
+        "title": ""
+      },
+      {
+        "text": "= totalPages}\n              onClick={() => setPage(p => Math.min(totalPages, p +",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExport",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedCase(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleVerifyShcil(selectedCase)}\n                >\n                  Verify SHCI",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handlePrepareBill(selectedCase)}\n                >\n                  Prepare Ref",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleApproveCase(selectedCase)}\n                >\n                  Approve Ref",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleDisburseCase(selectedCase)}\n                >\n                  Authorize ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleRejectCase(selectedCase)}\n                >\n                  Reject Case",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedCase(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setNewModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setNewModal(false)}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Register Refund Case",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setTrackModal(false)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n                    const f = items.find(\n                      x =>\n         ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setTrackModal(false)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 1,
+    "forms": [
+      {
+        "onSubmit": "handleSaveNewCase",
+        "fields_count": 10,
+        "fields": [
+          {
+            "tag": "select",
+            "type": "select",
+            "name_or_placeholder": "newForm.refund_type",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.applicant_name",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.applicant_id",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.original_challan_no",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "newForm.original_amount",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "newForm.refund_claim_amount",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.stamp_certificate_no",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.court_order_no",
+            "required": false
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.bank_account_number",
+            "required": true
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "name_or_placeholder": "newForm.ifsc_code",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "role: string }[]> = {",
+      "role: 'Citizen / Payer View' },",
+      "role: 'DDO / Department User' },",
+      "role: 'DDO / Department User' },",
+      "role: 'DDO / Department User' },",
+      "role: 'DDO / Department User' },",
+      "role: 'DDO / Department User' },",
+      "role: 'PAO Checker' },",
+      "role: 'PAO Maker' },",
+      "role: 'PAO Maker' },"
+    ]
+  },
+  "ReportsPage.tsx": {
+    "api_calls": [
+      "getAgencyBanks",
+      "getPaos",
+      "getReportCatalogue",
+      "getReportData",
+      "getRevenueSources"
+    ],
+    "buttons_count": 5,
+    "buttons": [
+      {
+        "text": "window.print()}>\n            \ud83d\udda8\ufe0f Print report",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "\u2b07\ufe0f Export current report",
+        "onClick": "handleExportCSV",
+        "disabled": "rows.length === 0",
+        "title": ""
+      },
+      {
+        "text": "Clear parameters",
+        "onClick": "handleClearParameters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPickerOpen(o => !o)}\n        >\n          \ud83d\udd0d\n          \n            {activeRep.",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "\ud83d\udd04 Refresh",
+        "onClick": "fetchReport",
+        "disabled": "",
+        "title": "Refresh report from live database"
+      }
+    ],
+    "forms_count": 0,
+    "forms": [],
+    "role_checks": [
+      "role, entity and value change.' },",
+      "userRole, showToast, refreshKey } = useApp();",
+      "userRole} User`],",
+      "userRole === 'PAO_MAKER'",
+      "userRole} User`}"
+    ]
+  },
+  "SlaPenalPage.tsx": {
+    "api_calls": [
+      "approvePenaltyWaiver",
+      "getAgencyBanks",
+      "getPenalClaims",
+      "issueDemandLetter",
+      "recordBankResponse"
+    ],
+    "buttons_count": 22,
+    "buttons": [
+      {
+        "text": "&#9993; Generate letters for all recoverable cases",
+        "onClick": "handleBulkLetters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{\n              setFilters({ ...filters, status: 'Issued' });\n              show",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('masters')}>\n            &#9881; SLA configuration",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Clear filters",
+        "onClick": "handleClearFilters",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setCalcModal(p)}>\n                        Calculation",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setLetterModal(p)}>\n                          Letter",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setResponseModal(p)}>\n                          Response",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setWaiveModal(p)}>\n                          Waive",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setPage(p => Math.max(1, p - 1))}\n            >\n              &larr; Prev",
+        "onClick": "",
+        "disabled": "page <= 1",
+        "title": ""
+      },
+      {
+        "text": "= totalPages}\n              onClick={() => setPage(p => Math.min(totalPages, p +",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "&#11015; Export CSV",
+        "onClick": "handleExport",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setCalcModal(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setCalcModal(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setLetterModal(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "window.print()}>\n                &#128424; Print Demand Letter",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setLetterModal(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setResponseModal(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setResponseModal(null)}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Record Settlement",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setWaiveModal(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setWaiveModal(null)}>\n                  Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Approve Waiver",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 2,
+    "forms": [
+      {
+        "onSubmit": "handleSaveResponse",
+        "fields_count": 2,
+        "fields": [
+          {
+            "tag": "input",
+            "type": "number",
+            "name_or_placeholder": "String(responseModal.penal)",
+            "required": false
+          },
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "respNotes",
+            "required": false
+          }
+        ]
+      },
+      {
+        "onSubmit": "handleSaveWaiver",
+        "fields_count": 1,
+        "fields": [
+          {
+            "tag": "textarea",
+            "type": "text",
+            "name_or_placeholder": "waiveReason",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "role_checks": [
+      "userRole, showToast, setActiveTab, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "userRole);",
+      "userRole);"
+    ]
+  },
+  "UploadPage.tsx": {
+    "api_calls": [
+      "approveBatch",
+      "deleteBatch",
+      "getBatchDetails",
+      "getUploadBatches",
+      "uploadBankScroll",
+      "uploadPortalFile",
+      "uploadRbiLuggage"
+    ],
+    "buttons_count": 13,
+    "buttons": [
+      {
+        "text": "&#10003; Approve all valid batches",
+        "onClick": "handleApproveAll",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setActiveTab('help')}>\n            &#11015; Sample file formats",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleLoadDemo(p.kind as any)}\n                  >\n                    Load Incl",
+        "onClick": "",
+        "disabled": "!isUploadAllowed",
+        "title": ""
+      },
+      {
+        "text": "handleDownloadSample(p.kind as any)}\n                  >\n                    &#1",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "Refresh",
+        "onClick": "fetchBatches",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleViewRecords(b)}>\n                          Records",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleApproveBatch(batchId, batchNo)}\n                          >\n              ",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "handleDeleteBatch(batchId, batchNo)}\n                            title=\"Delete b",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setReviewData(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setReviewData(null)}>\n                Cancel",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "{posting ? 'Posting batch...' : `Post ${cnt(reviewData.rows.length - reviewData.",
+        "onClick": "handlePostBatch",
+        "disabled": "posting",
+        "title": ""
+      },
+      {
+        "text": "setSelectedBatchDetails(null)}>\n                &times;",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      },
+      {
+        "text": "setSelectedBatchDetails(null)}>\n                Close",
+        "onClick": "",
+        "disabled": "",
+        "title": ""
+      }
+    ],
+    "forms_count": 0,
+    "forms": [],
+    "role_checks": [
+      "userRole, showToast, setActiveTab, refreshKey, triggerRefresh } = useApp();",
+      "userRole);",
+      "userRole);",
+      "userRole);",
+      "userRole);",
+      "userRole);",
+      "can upload Departmental Portal data.', 'warning');",
+      "can upload Agency Bank scrolls.', 'warning');",
+      "can upload RBI Luggage files.', 'warning');",
+      "can approve batches.', 'warning');"
+    ]
+  }
+}

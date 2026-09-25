@@ -1,0 +1,142 @@
+{
+  "accounting.py": [],
+  "audit.py": [],
+  "auth.py": [
+    {
+      "method": "GET",
+      "path": "/roles",
+      "func_name": "get_roles",
+      "capability": "None",
+      "service_calls": []
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "func_name": "get_current_user_profile",
+      "capability": "None",
+      "service_calls": []
+    }
+  ],
+  "citizen.py": [
+    {
+      "method": "GET",
+      "path": "/track/{case_no}",
+      "func_name": "track_refund_application",
+      "capability": "None",
+      "service_calls": [
+        "CitizenService.track_refund_case"
+      ]
+    }
+  ],
+  "collection.py": [],
+  "config.py": [],
+  "dashboard.py": [],
+  "devolution.py": [],
+  "exceptions.py": [],
+  "help.py": [
+    {
+      "method": "GET",
+      "path": "/samples",
+      "func_name": "list_samples",
+      "capability": "None",
+      "service_calls": []
+    },
+    {
+      "method": "GET",
+      "path": "/samples/{key}/download",
+      "func_name": "download_sample_file",
+      "capability": "None",
+      "service_calls": []
+    }
+  ],
+  "masters.py": [],
+  "notifications.py": [
+    {
+      "method": "POST",
+      "path": "/mark-read",
+      "func_name": "mark_notifications_read",
+      "capability": "None",
+      "service_calls": []
+    }
+  ],
+  "recon.py": [],
+  "refunds.py": [
+    {
+      "method": "POST",
+      "path": "/{refund_id}/advance",
+      "func_name": "advance_refund_stage",
+      "capability": "None",
+      "service_calls": [
+        "RefundService.advance_stage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{refund_id}/verify-shcil",
+      "func_name": "verify_shcil",
+      "capability": "None",
+      "service_calls": [
+        "RefundService.advance_stage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{refund_id}/prepare-bill",
+      "func_name": "prepare_bill",
+      "capability": "None",
+      "service_calls": [
+        "RefundService.advance_stage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{refund_id}/approve-pao",
+      "func_name": "approve_pao",
+      "capability": "None",
+      "service_calls": [
+        "RefundService.advance_stage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{refund_id}/instruct-payment",
+      "func_name": "instruct_payment",
+      "capability": "None",
+      "service_calls": [
+        "RefundService.advance_stage"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{refund_id}/mark-paid",
+      "func_name": "mark_paid",
+      "capability": "None",
+      "service_calls": [
+        "RefundService.advance_stage"
+      ]
+    }
+  ],
+  "reports.py": [],
+  "sla.py": [],
+  "testsuite.py": [],
+  "upload.py": [
+    {
+      "method": "POST",
+      "path": "/file",
+      "func_name": "upload_csv_file",
+      "capability": "None",
+      "service_calls": [
+        "UploadService.process_csv_upload"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/load-sample",
+      "func_name": "load_sample_dataset",
+      "capability": "None",
+      "service_calls": [
+        "UploadService.load_sample_dataset"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,590 @@
+[
+  {
+    "event_object_table": "approved_budget",
+    "trigger_name": "trg_audit_approved_budget",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('approved_budget_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "approved_budget",
+    "trigger_name": "trg_audit_approved_budget",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('approved_budget_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "approved_budget",
+    "trigger_name": "trg_audit_approved_budget",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('approved_budget_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_allocation",
+    "trigger_name": "trg_audit_budget_allocation",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('allocation_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_allocation",
+    "trigger_name": "trg_audit_budget_allocation",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('allocation_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_allocation",
+    "trigger_name": "trg_audit_budget_allocation",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('allocation_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_allocation_line",
+    "trigger_name": "trg_allocation_line_total",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_allocation_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_allocation_line",
+    "trigger_name": "trg_allocation_line_total",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_allocation_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_allocation_line",
+    "trigger_name": "trg_allocation_line_total",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_allocation_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_ledger_entry",
+    "trigger_name": "trg_audit_ledger_entry",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('ledger_entry_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_ledger_entry",
+    "trigger_name": "trg_audit_ledger_entry",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('ledger_entry_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_ledger_entry",
+    "trigger_name": "trg_audit_ledger_entry",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('ledger_entry_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal",
+    "trigger_name": "trg_audit_budget_proposal",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('proposal_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal",
+    "trigger_name": "trg_audit_budget_proposal",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('proposal_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal",
+    "trigger_name": "trg_audit_budget_proposal",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('proposal_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal",
+    "trigger_name": "trg_generate_proposal_no",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_generate_proposal_no()",
+    "action_timing": "BEFORE"
+  },
+  {
+    "event_object_table": "budget_proposal_line",
+    "trigger_name": "trg_audit_budget_proposal_line",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('proposal_line_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal_line",
+    "trigger_name": "trg_audit_budget_proposal_line",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('proposal_line_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal_line",
+    "trigger_name": "trg_audit_budget_proposal_line",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('proposal_line_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal_line",
+    "trigger_name": "trg_budget_proposal_line_total",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_proposal_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal_line",
+    "trigger_name": "trg_budget_proposal_line_total",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_proposal_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_proposal_line",
+    "trigger_name": "trg_budget_proposal_line_total",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_proposal_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission",
+    "trigger_name": "trg_audit_budget_submission",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('submission_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission",
+    "trigger_name": "trg_audit_budget_submission",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('submission_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission",
+    "trigger_name": "trg_audit_budget_submission",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('submission_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_line",
+    "trigger_name": "trg_audit_budget_submission_line",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('submission_line_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_line",
+    "trigger_name": "trg_audit_budget_submission_line",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('submission_line_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_line",
+    "trigger_name": "trg_audit_budget_submission_line",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('submission_line_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_line",
+    "trigger_name": "trg_submission_line_total",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_submission_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_line",
+    "trigger_name": "trg_submission_line_total",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_submission_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_line",
+    "trigger_name": "trg_submission_line_total",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_submission_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_phasing",
+    "trigger_name": "trg_submission_phasing_validate",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_validate_submission_phasing()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_phasing",
+    "trigger_name": "trg_submission_phasing_validate",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_validate_submission_phasing()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "budget_submission_phasing",
+    "trigger_name": "trg_submission_phasing_validate",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_validate_submission_phasing()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "chart_of_account",
+    "trigger_name": "trg_audit_chart_of_account",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('coa_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "chart_of_account",
+    "trigger_name": "trg_audit_chart_of_account",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('coa_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "chart_of_account",
+    "trigger_name": "trg_audit_chart_of_account",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('coa_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "chart_of_account",
+    "trigger_name": "trg_validate_coa_hierarchy",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_validate_coa_hierarchy()",
+    "action_timing": "BEFORE"
+  },
+  {
+    "event_object_table": "chart_of_account",
+    "trigger_name": "trg_validate_coa_hierarchy",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_validate_coa_hierarchy()",
+    "action_timing": "BEFORE"
+  },
+  {
+    "event_object_table": "commitment",
+    "trigger_name": "trg_audit_commitment",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('commitment_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "commitment",
+    "trigger_name": "trg_audit_commitment",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('commitment_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "commitment",
+    "trigger_name": "trg_audit_commitment",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('commitment_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "fund_release",
+    "trigger_name": "trg_audit_fund_release",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('release_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "fund_release",
+    "trigger_name": "trg_audit_fund_release",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('release_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "fund_release",
+    "trigger_name": "trg_audit_fund_release",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('release_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "fund_release_line",
+    "trigger_name": "trg_release_line_total",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_release_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "fund_release_line",
+    "trigger_name": "trg_release_line_total",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_release_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "fund_release_line",
+    "trigger_name": "trg_release_line_total",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_release_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation",
+    "trigger_name": "trg_audit_reappropriation",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('reappropriation_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation",
+    "trigger_name": "trg_audit_reappropriation",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('reappropriation_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation",
+    "trigger_name": "trg_audit_reappropriation",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('reappropriation_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation_line",
+    "trigger_name": "trg_reappropriation_line_total",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_reappropriation_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation_line",
+    "trigger_name": "trg_reappropriation_line_total",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_reappropriation_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation_line",
+    "trigger_name": "trg_reappropriation_line_total",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_reappropriation_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation_line",
+    "trigger_name": "trg_reappropriation_line_validate",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_validate_reappropriation_balance()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation_line",
+    "trigger_name": "trg_reappropriation_line_validate",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_validate_reappropriation_balance()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "reappropriation_line",
+    "trigger_name": "trg_reappropriation_line_validate",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_validate_reappropriation_balance()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_glossary",
+    "trigger_name": "trg_rev_glossary_audit",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_glossary",
+    "trigger_name": "trg_rev_glossary_audit",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_glossary",
+    "trigger_name": "trg_rev_glossary_audit",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_process_flow_step",
+    "trigger_name": "trg_rev_process_flow_step_audit",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_process_flow_step",
+    "trigger_name": "trg_rev_process_flow_step_audit",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_process_flow_step",
+    "trigger_name": "trg_rev_process_flow_step_audit",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_recon_result",
+    "trigger_name": "trg_rev_recon_audit",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_recon_result",
+    "trigger_name": "trg_rev_recon_audit",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_recon_result",
+    "trigger_name": "trg_rev_recon_audit",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_refund_case",
+    "trigger_name": "trg_rev_refund_audit",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_refund_case",
+    "trigger_name": "trg_rev_refund_audit",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_refund_case",
+    "trigger_name": "trg_rev_refund_audit",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_sample_template",
+    "trigger_name": "trg_rev_sample_template_audit",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_sample_template",
+    "trigger_name": "trg_rev_sample_template_audit",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "rev_sample_template",
+    "trigger_name": "trg_rev_sample_template_audit",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_rev_audit_handler()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "supplementary_estimate",
+    "trigger_name": "trg_audit_supplementary",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('supplementary_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "supplementary_estimate",
+    "trigger_name": "trg_audit_supplementary",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('supplementary_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "supplementary_estimate",
+    "trigger_name": "trg_audit_supplementary",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('supplementary_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "supplementary_estimate_line",
+    "trigger_name": "trg_supplementary_line_total",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_supplementary_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "supplementary_estimate_line",
+    "trigger_name": "trg_supplementary_line_total",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_supplementary_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "supplementary_estimate_line",
+    "trigger_name": "trg_supplementary_line_total",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_refresh_supplementary_total()",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "surrender",
+    "trigger_name": "trg_audit_surrender",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('surrender_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "surrender",
+    "trigger_name": "trg_audit_surrender",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('surrender_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "surrender",
+    "trigger_name": "trg_audit_surrender",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('surrender_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "workflow_action_log",
+    "trigger_name": "trg_audit_workflow_action_log",
+    "event_manipulation": "INSERT",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('action_log_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "workflow_action_log",
+    "trigger_name": "trg_audit_workflow_action_log",
+    "event_manipulation": "DELETE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('action_log_id')",
+    "action_timing": "AFTER"
+  },
+  {
+    "event_object_table": "workflow_action_log",
+    "trigger_name": "trg_audit_workflow_action_log",
+    "event_manipulation": "UPDATE",
+    "action_statement": "EXECUTE FUNCTION fn_log_change('action_log_id')",
+    "action_timing": "AFTER"
+  }
+]
